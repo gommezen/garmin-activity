@@ -1,6 +1,6 @@
 # Garmin Activity Puller
 
-A simple Python CLI that pulls your fitness activities from Garmin Connect, displays formatted summaries, and optionally exports to JSON.
+A simple Python CLI that pulls your activities from Garmin Connect, displays formatted summaries, and optionally exports to JSON.
 
 ## Setup
 
@@ -28,6 +28,3 @@ python pull_activities.py running --save
 python pull_activities.py --list-sports
 ```
 
-## Supported Sports
-
-running, cycling, swimming, walking, hiking, strength_training, yoga, cardio, elliptical, stair_climbing, rowing, skiing, golf, soccer, basketball, tennis, multi_sport, fitness_equipment

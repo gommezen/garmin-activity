@@ -1,6 +1,15 @@
+# Credentials & tokens
 .env
 .garmin_tokens/
+
+# Output
 output/
+
+# Python
 __pycache__/
 *.pyc
+
+# Project notes
 CLAUDE.md
+todo.md
+.claude

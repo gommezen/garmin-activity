@@ -9,12 +9,13 @@
 - [x] Add formatted console output (distance, pace, HR, elevation, etc.)
 - [x] Add JSON export (--save flag)
 - [x] Install dependencies (garminconnect, python-dotenv)
-
-## Next Steps (pick up here next session)
-- [ ] Add Garmin credentials to `.env` file (copy from `.env.example`)
-- [ ] Test login: `python pull_activities.py --list-sports`
-- [ ] Pull first activity data: `python pull_activities.py running` (or your sport)
-- [ ] Try saving to JSON: `python pull_activities.py running --save`
+- [x] Add Garmin credentials to `.env` file
+- [x] Test login and pull activity data
+- [x] Fix display name showing None on fresh login
+- [x] Fix Unicode output on Windows
+- [x] Fix --list-sports requiring sport argument
+- [x] Add README.md
+- [x] Clean up .gitignore
 
 ## Future Ideas
 - [ ] Export to CSV for spreadsheet analysis

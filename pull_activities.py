@@ -4,10 +4,14 @@ Pulls activities by sport type from your Garmin Connect account.
 """
 
 import os
+import sys
 import json
 import argparse
 from datetime import date, timedelta
 from pathlib import Path
+
+# Ensure Unicode output works on Windows
+sys.stdout.reconfigure(encoding="utf-8")
 
 from dotenv import load_dotenv
 from garminconnect import Garmin, GarminConnectAuthenticationError
@@ -59,6 +63,7 @@ def login() -> Garmin:
     # Save tokens for next time
     TOKEN_DIR.mkdir(exist_ok=True)
     client.garth.dump(str(TOKEN_DIR))
+    client.display_name = client.garth.profile["displayName"]
     print(f"Logged in as {client.display_name}")
     return client
 
@@ -147,6 +152,7 @@ def main():
     parser = argparse.ArgumentParser(description="Pull Garmin Connect activities by sport type")
     parser.add_argument(
         "sport",
+        nargs="?",
         help=f"Sport type to filter. Options: {', '.join(SPORT_TYPES)}",
     )
     parser.add_argument(
@@ -173,6 +179,9 @@ def main():
         for s in SPORT_TYPES:
             print(f"  - {s}")
         return
+
+    if not args.sport:
+        parser.error("sport is required (use --list-sports to see options)")
 
     client = login()
     activities = pull_activities(client, args.sport, args.days, args.limit)
