@@ -90,6 +90,19 @@ if pd.notna(latest["cadence"]):
 
 st.divider()
 
+# --- Time range filter ---
+range_options = {"1 Month": 30, "3 Months": 90, "6 Months": 180, "1 Year": 365, "All Time": None}
+selected_range = st.radio("Time Range", list(range_options.keys()), index=4, horizontal=True)
+days = range_options[selected_range]
+
+if days:
+    cutoff = df["start_time"].max() - pd.Timedelta(days=days)
+    filtered_df = df[df["start_time"] >= cutoff]
+else:
+    filtered_df = df
+
+st.caption(f"Showing {len(filtered_df)} activities" + (f" from last {days} days" if days else ""))
+
 # --- Tabs ---
 tab_trends, tab_summary = st.tabs(["Trends", "Summary"])
 
@@ -101,31 +114,31 @@ with tab_trends:
     with t1:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(df, "start_time", "distance_km", "Distance", "km", "#2196F3"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "distance_km", "Distance", "km", "#2196F3"), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(df, "start_time", "pace_min_km", "Pace", "min/km", "#FF5722"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "pace_min_km", "Pace", "min/km", "#FF5722"), use_container_width=True)
 
     with t2:
-        st.plotly_chart(make_dual_chart(df, "start_time", "avg_hr", "max_hr", "Heart Rate", "Avg HR", "Max HR", "bpm"), use_container_width=True)
+        st.plotly_chart(make_dual_chart(filtered_df, "start_time", "avg_hr", "max_hr", "Heart Rate", "Avg HR", "Max HR", "bpm"), use_container_width=True)
 
     with t3:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(df, "start_time", "duration_min", "Duration", "min", "#4CAF50"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "duration_min", "Duration", "min", "#4CAF50"), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(df, "start_time", "calories", "Calories", "kcal", "#FF9800"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "calories", "Calories", "kcal", "#FF9800"), use_container_width=True)
 
     with t4:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(df, "start_time", "cadence", "Cadence", "spm", "#607D8B"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "cadence", "Cadence", "spm", "#607D8B"), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(df, "start_time", "elevation_gain", "Elevation Gain", "m", "#795548"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "elevation_gain", "Elevation Gain", "m", "#795548"), use_container_width=True)
 
 # --- Summary tab ---
 with tab_summary:
     # Personal records
-    prs = personal_records(df)
+    prs = personal_records(filtered_df)
     st.subheader("Personal Records")
     pr_cols = st.columns(3)
     if "fastest_pace" in prs:
@@ -142,12 +155,12 @@ with tab_summary:
 
     # Monthly summary
     st.subheader("Monthly Summary")
-    monthly = monthly_summary(df)
+    monthly = monthly_summary(filtered_df)
     monthly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence", "Avg HR", "Elevation (m)", "Calories"]
     st.dataframe(monthly, use_container_width=True)
 
     # Weekly summary
     st.subheader("Weekly Summary")
-    weekly = weekly_summary(df)
+    weekly = weekly_summary(filtered_df)
     weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence", "Avg HR", "Elevation (m)", "Calories"]
     st.dataframe(weekly, use_container_width=True)
