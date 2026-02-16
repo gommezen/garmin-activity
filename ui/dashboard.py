@@ -124,28 +124,32 @@ h1, h2, h3 {
     background: #12121e !important; border: 1px solid #1e1e2a !important;
     border-radius: 0 !important; color: #c9a84c !important;
     font-family: 'Josefin Sans', sans-serif !important; font-size: 0.75rem !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 1px !important; text-align: center !important;
+    display: flex !important; justify-content: center !important; align-items: center !important;
 }
+/* Center the currently selected value inside the visible select control */
+[data-baseweb="select"] [role="combobox"] {
+    display: flex !important; justify-content: center !important; align-items: center !important;
+}
+[data-baseweb="select"] [role="combobox"] span {
+    width: 100% !important; text-align: center !important; display: block !important;
+}
+[data-baseweb="select"] [role="combobox"] input {
+    text-align: center !important; padding-left: 0.6rem !important; padding-right: 0.6rem !important;
+}
+[data-baseweb="select"], [data-baseweb="select"] * { text-align: center !important; justify-content: center !important; }
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"],
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"] * { text-align: left !important; justify-content: flex-start !important; }
 [data-baseweb="select"] > div:hover { border-color: #c9a84c60 !important; }
 [data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
 [data-baseweb="popover"] [role="listbox"] { background: #12121e !important; border: 1px solid #1e1e2a !important; border-radius: 0 !important; }
 [data-baseweb="popover"] [role="option"] {
     font-family: 'Josefin Sans', sans-serif !important; font-size: 0.75rem !important;
     color: #a09880 !important; letter-spacing: 1px !important; background: #12121e !important;
+    text-align: center !important;
 }
 [data-baseweb="popover"] [role="option"]:hover { background: #1e1e2a !important; color: #e8e0d0 !important; }
-[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #605848 !important; background: #12121e !important; font-style: italic; }
-
-/* ═══ RADIO BUTTONS (Time Range) ═══ */
-div[data-testid="stRadio"] label {
-    font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
-    letter-spacing: 1px !important; font-size: 0.75rem !important;
-    color: #605848 !important; transition: color 0.3s ease;
-}
-div[data-testid="stRadio"] label:hover { color: #a09880 !important; }
-div[data-testid="stRadio"] label p { color: inherit !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #c9a84c60 !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #00c9a7 !important; }
+[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #e8e0d0 !important; background: #1e1e2a !important; font-style: normal !important; font-weight: 600 !important; text-align: center !important; }
 
 .stDateInput input {
     background-color: #12121e !important; border: 1px solid #1e1e2a !important;
@@ -281,32 +285,36 @@ h1, h2, h3 {
 .stTabs [data-baseweb="tab-border"] { background-color: #21262d !important; }
 
 /* ═══ SELECTBOX (Theme Picker) ═══ */
-[data-baseweb="select"] > div {
+    [data-baseweb="select"] > div {
     background: rgba(22, 27, 34, 0.9) !important; border: 1px solid #21262d !important;
     border-radius: 8px !important; color: #00f0ff !important; backdrop-filter: blur(8px);
     font-family: 'Sora', sans-serif !important; font-size: 0.75rem !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 1px !important; text-align: center !important;
+    display: flex !important; justify-content: center !important; align-items: center !important;
 }
+    /* Center the currently selected value inside the visible select control */
+    [data-baseweb="select"] [role="combobox"] {
+        display: flex !important; justify-content: center !important; align-items: center !important;
+    }
+    [data-baseweb="select"] [role="combobox"] span {
+        width: 100% !important; text-align: center !important; display: block !important;
+    }
+    [data-baseweb="select"] [role="combobox"] input {
+        text-align: center !important; padding-left: 0.6rem !important; padding-right: 0.6rem !important;
+    }
+[data-baseweb="select"], [data-baseweb="select"] * { text-align: center !important; justify-content: center !important; }
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"],
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"] * { text-align: left !important; justify-content: flex-start !important; }
 [data-baseweb="select"] > div:hover { border-color: rgba(0, 240, 255, 0.3) !important; }
 [data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
 [data-baseweb="popover"] [role="listbox"] { background: #161b22 !important; border: 1px solid #21262d !important; border-radius: 8px !important; }
-[data-baseweb="popover"] [role="option"] {
+    [data-baseweb="popover"] [role="option"] {
     font-family: 'Sora', sans-serif !important; font-size: 0.75rem !important;
     color: #8b949e !important; letter-spacing: 1px !important; background: #161b22 !important;
+    text-align: center !important;
 }
 [data-baseweb="popover"] [role="option"]:hover { background: #21262d !important; color: #e6edf3 !important; }
-[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #484f58 !important; background: #161b22 !important; font-style: italic; }
-
-/* ═══ RADIO BUTTONS (Time Range) ═══ */
-div[data-testid="stRadio"] label {
-    font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
-    letter-spacing: 1px !important; font-size: 0.75rem !important;
-    color: #484f58 !important; transition: color 0.2s ease;
-}
-div[data-testid="stRadio"] label:hover { color: #8b949e !important; }
-div[data-testid="stRadio"] label p { color: inherit !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #21262d !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #00f0ff !important; box-shadow: 0 0 6px rgba(0, 240, 255, 0.3); }
+    [data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #00f0ff !important; background: #161b22 !important; font-style: normal !important; font-weight: 600 !important; text-align: center !important; }
 
 .stDateInput input {
     background-color: #161b22 !important; border: 1px solid #21262d !important;
@@ -489,32 +497,36 @@ h1, h2, h3 {
 .stTabs [data-baseweb="tab-border"] { background-color: #2c2722 !important; }
 
 /* ═══ SELECTBOX (Theme Picker) ═══ */
-[data-baseweb="select"] > div {
+    [data-baseweb="select"] > div {
     background: #191714 !important; border: 1px solid #2c2722 !important;
     border-radius: 2px !important; color: #e0943a !important;
     font-family: 'Orbitron', sans-serif !important; font-size: 0.7rem !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 1px !important; text-align: center !important;
+    display: flex !important; justify-content: center !important; align-items: center !important;
 }
+    /* Center the currently selected value inside the visible select control */
+    [data-baseweb="select"] [role="combobox"] {
+        display: flex !important; justify-content: center !important; align-items: center !important;
+    }
+    [data-baseweb="select"] [role="combobox"] span {
+        width: 100% !important; text-align: center !important; display: block !important;
+    }
+    [data-baseweb="select"] [role="combobox"] input {
+        text-align: center !important; padding-left: 0.6rem !important; padding-right: 0.6rem !important;
+    }
+[data-baseweb="select"], [data-baseweb="select"] * { text-align: center !important; justify-content: center !important; }
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"],
+[data-testid="stHorizontalBlock"] [data-testid="column"]:first-child [data-baseweb="select"] * { text-align: left !important; justify-content: flex-start !important; }
 [data-baseweb="select"] > div:hover { border-color: rgba(224, 148, 58, 0.3) !important; }
 [data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
 [data-baseweb="popover"] [role="listbox"] { background: #191714 !important; border: 1px solid #2c2722 !important; border-radius: 2px !important; }
-[data-baseweb="popover"] [role="option"] {
+    [data-baseweb="popover"] [role="option"] {
     font-family: 'Orbitron', sans-serif !important; font-size: 0.7rem !important;
     color: #8a7d68 !important; letter-spacing: 1px !important; background: #191714 !important;
+    text-align: center !important;
 }
 [data-baseweb="popover"] [role="option"]:hover { background: #2c2722 !important; color: #d8c9a3 !important; }
-[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #554f44 !important; background: #191714 !important; font-style: italic; }
-
-/* ═══ RADIO BUTTONS (Time Range) ═══ */
-div[data-testid="stRadio"] label {
-    font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
-    letter-spacing: 1px !important; font-size: 0.7rem !important;
-    color: #554f44 !important; transition: color 0.3s ease;
-}
-div[data-testid="stRadio"] label:hover { color: #8a7d68 !important; }
-div[data-testid="stRadio"] label p { color: inherit !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #2c2722 !important; }
-div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #e0943a !important; box-shadow: 0 0 6px rgba(224, 148, 58, 0.3); }
+    [data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #e0943a !important; background: #191714 !important; font-style: normal !important; font-weight: 600 !important; text-align: center !important; }
 
 .stDateInput input {
     background-color: #191714 !important; border: 1px solid #2c2722 !important;
@@ -742,7 +754,7 @@ def section_label(text):
 
 def _layout(title, unit):
     return dict(
-        title=dict(text=title.upper(), font=dict(family=FONT_H, size=13, color=TXT), x=0, xanchor="left"),
+        title=dict(text=title.upper(), font=dict(family=FONT_H, size=13, color=TXT), x=0.5, xanchor="center"),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=PLOT_BG,
         font=dict(family=FONT_B, color=DIM, size=11),
         xaxis=dict(gridcolor=GRID, linecolor=BORDER, tickfont=dict(color=MUTED, size=10), title=None),
@@ -1159,7 +1171,10 @@ divider()
 # ── Time Range ────────────────────────────────────────
 
 range_options = {"1 Month": 30, "3 Months": 90, "6 Months": 180, "1 Year": 365, "All Time": None}
-selected_range = st.radio("Time Range", list(range_options.keys()), index=4, horizontal=True)
+_rl, _rr = st.columns([1, 4])
+with _rl:
+    selected_range = st.selectbox("Time Range", list(range_options.keys()), index=4,
+                                  label_visibility="collapsed")
 days = range_options[selected_range]
 
 if days:
