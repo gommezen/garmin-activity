@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from src.db import load_dataframe
+from src.db import load_dataframe, load_laps_dataframe
 from src.stats import weekly_summary, monthly_summary, personal_records
 
 st.set_page_config(page_title="Garmin Running", page_icon="\u25c6", layout="wide")
@@ -1371,99 +1371,111 @@ with tab_compare:
 # ── Zones ────────────────────────────────────────────
 
 with tab_zones:
-    # Classify each activity into a pace zone
-    zdf = filtered_df.dropna(subset=["pace_min_km"]).copy()
-    zdf["pace_zone"] = pd.cut(zdf["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
+    # Load lap-level data and filter to same time range as activities
+    laps_df = load_laps_dataframe()
 
-    zone_counts = zdf["pace_zone"].value_counts().reindex(ZONE_LABELS, fill_value=0)
-    zone_km = zdf.groupby("pace_zone", observed=True)["distance_km"].sum().reindex(ZONE_LABELS, fill_value=0)
-    total = zone_counts.sum()
+    if laps_df.empty:
+        st.warning("No lap data found. Run `python pull_activities.py --laps` to pull lap data.")
+    else:
+        # Filter laps to same time range as activity filter
+        if days:
+            laps_df = laps_df[laps_df["start_time"] >= cutoff]
 
-    # ── Zone summary cards ──
-    section_label("Pace Zone Breakdown")
+        # Classify each lap into a pace zone
+        zdf = laps_df.dropna(subset=["pace_min_km"]).copy()
+        zdf = zdf[zdf["pace_min_km"] > 0]
+        zdf["pace_zone"] = pd.cut(zdf["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
 
-    zone_card_html = '<div class="metric-grid">'
-    for label, color in zip(ZONE_LABELS, ZONE_COLORS):
-        count = int(zone_counts.get(label, 0))
-        pct = count / total * 100 if total else 0
-        zone_card_html += (
-            f'<div class="m-card">'
-            f'<div class="m-label" style="color:{color}">{label}</div>'
-            f'<div class="m-val">{count}<span class="m-unit"> runs</span></div>'
-            f'<div style="font-size:0.75rem;color:{DIM}">{pct:.0f}% · {zone_km.get(label, 0):.0f} km</div>'
-            f'</div>'
-        )
-    zone_card_html += '</div>'
-    st.markdown(zone_card_html, unsafe_allow_html=True)
+        zone_counts = zdf["pace_zone"].value_counts().reindex(ZONE_LABELS, fill_value=0)
+        zone_km = zdf.groupby("pace_zone", observed=True)["distance_km"].sum().reindex(ZONE_LABELS, fill_value=0)
+        total = zone_counts.sum()
 
-    divider()
+        # ── Zone summary cards ──
+        section_label("Pace Zone Breakdown")
+        st.caption(f"{int(total)} laps across {zdf['activity_id'].nunique()} activities")
 
-    # ── Row 1: Donut + Bar ──
-    col_donut, col_bar = st.columns(2)
+        zone_card_html = '<div class="metric-grid">'
+        for label, color in zip(ZONE_LABELS, ZONE_COLORS):
+            count = int(zone_counts.get(label, 0))
+            pct = count / total * 100 if total else 0
+            zone_card_html += (
+                f'<div class="m-card">'
+                f'<div class="m-label" style="color:{color}">{label}</div>'
+                f'<div class="m-val">{count}<span class="m-unit"> laps</span></div>'
+                f'<div style="font-size:0.75rem;color:{DIM}">{pct:.0f}% · {zone_km.get(label, 0):.0f} km</div>'
+                f'</div>'
+            )
+        zone_card_html += '</div>'
+        st.markdown(zone_card_html, unsafe_allow_html=True)
 
-    with col_donut:
-        fig_donut = go.Figure(data=[go.Pie(
-            labels=ZONE_LABELS, values=zone_counts.values,
-            hole=0.55, marker=dict(colors=ZONE_COLORS, line=dict(color=BG, width=2)),
-            textinfo="percent", textfont=dict(family=FONT_B, size=12, color=TXT),
-            hovertemplate="<b>%{label}</b><br>%{value} runs (%{percent})<extra></extra>",
-            sort=False,
-        )])
-        fig_donut.update_layout(
-            title=dict(text="ZONE DISTRIBUTION", font=dict(family=FONT_H, size=13, color=TXT),
-                       x=0.5, xanchor="center"),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=PLOT_BG,
-            font=dict(family=FONT_B, color=DIM, size=11),
-            height=380, margin=dict(l=20, r=20, t=50, b=30),
-            legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5,
-                        font=dict(color=DIM, family=FONT_B, size=10)),
-            hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
-                            font=dict(color=TXT, family=FONT_B, size=12)),
-        )
-        st.plotly_chart(fig_donut, use_container_width=True)
+        divider()
 
-    with col_bar:
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            y=ZONE_LABELS, x=zone_counts.values, orientation="h",
-            marker=dict(color=ZONE_COLORS, line=dict(color=BG, width=1)),
-            text=[f"{zone_km[z]:.0f} km" for z in ZONE_LABELS],
-            textposition="outside", textfont=dict(family=FONT_B, size=10, color=DIM),
-            hovertemplate="<b>%{y}</b><br>%{x} runs<extra></extra>",
-        ))
-        layout_bar = _layout("Runs per zone", "runs")
-        layout_bar["yaxis"] = dict(autorange="reversed", tickfont=dict(color=TXT, size=11, family=FONT_B),
-                                   gridcolor=GRID, linecolor=BORDER)
-        layout_bar["xaxis"]["title"] = dict(text="runs", font=dict(size=11, color=DIM))
-        layout_bar["height"] = 380
-        fig_bar.update_layout(**layout_bar)
-        st.plotly_chart(fig_bar, use_container_width=True)
+        # ── Row 1: Donut + Bar ──
+        col_donut, col_bar = st.columns(2)
 
-    divider()
+        with col_donut:
+            fig_donut = go.Figure(data=[go.Pie(
+                labels=ZONE_LABELS, values=zone_counts.values,
+                hole=0.55, marker=dict(colors=ZONE_COLORS, line=dict(color=BG, width=2)),
+                textinfo="percent", textfont=dict(family=FONT_B, size=12, color=TXT),
+                hovertemplate="<b>%{label}</b><br>%{value} laps (%{percent})<extra></extra>",
+                sort=False,
+            )])
+            fig_donut.update_layout(
+                title=dict(text="ZONE DISTRIBUTION", font=dict(family=FONT_H, size=13, color=TXT),
+                           x=0.5, xanchor="center"),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=PLOT_BG,
+                font=dict(family=FONT_B, color=DIM, size=11),
+                height=380, margin=dict(l=20, r=20, t=50, b=30),
+                legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5,
+                            font=dict(color=DIM, family=FONT_B, size=10)),
+                hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
+                                font=dict(color=TXT, family=FONT_B, size=12)),
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
 
-    # ── Row 2: Yearly zone trend ──
-    section_label("Zone Trend by Year")
+        with col_bar:
+            fig_bar = go.Figure()
+            fig_bar.add_trace(go.Bar(
+                y=ZONE_LABELS, x=zone_counts.values, orientation="h",
+                marker=dict(color=ZONE_COLORS, line=dict(color=BG, width=1)),
+                text=[f"{zone_km[z]:.0f} km" for z in ZONE_LABELS],
+                textposition="outside", textfont=dict(family=FONT_B, size=10, color=DIM),
+                hovertemplate="<b>%{y}</b><br>%{x} laps<extra></extra>",
+            ))
+            layout_bar = _layout("Laps per zone", "laps")
+            layout_bar["yaxis"] = dict(autorange="reversed", tickfont=dict(color=TXT, size=11, family=FONT_B),
+                                       gridcolor=GRID, linecolor=BORDER)
+            layout_bar["xaxis"]["title"] = dict(text="laps", font=dict(size=11, color=DIM))
+            layout_bar["height"] = 380
+            fig_bar.update_layout(**layout_bar)
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-    zdf["year"] = zdf["start_time"].dt.year
-    yearly_zones = zdf.groupby(["year", "pace_zone"], observed=True).size().unstack(fill_value=0)
-    yearly_zones = yearly_zones.reindex(columns=ZONE_LABELS, fill_value=0)
-    yearly_pct = yearly_zones.div(yearly_zones.sum(axis=1), axis=0) * 100
+        divider()
 
-    fig_trend = go.Figure()
-    for label, color in zip(ZONE_LABELS, ZONE_COLORS):
-        fig_trend.add_trace(go.Bar(
-            x=yearly_pct.index.astype(str), y=yearly_pct[label],
-            name=label, marker=dict(color=color, line=dict(color=BG, width=0.5)),
-            hovertemplate=f"<b>{label}</b><br>%{{y:.0f}}% of runs<extra></extra>",
-        ))
-    layout_trend = _layout("", "% of runs")
-    layout_trend["barmode"] = "stack"
-    layout_trend["legend"] = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
-                                  font=dict(color=DIM, family=FONT_H, size=10))
-    layout_trend["height"] = 400
-    layout_trend["margin"] = dict(l=50, r=20, t=60, b=30)
-    fig_trend.update_layout(**layout_trend)
-    st.plotly_chart(fig_trend, use_container_width=True)
+        # ── Row 2: Yearly zone trend ──
+        section_label("Zone Trend by Year")
+
+        zdf["year"] = zdf["start_time"].dt.year
+        yearly_zones = zdf.groupby(["year", "pace_zone"], observed=True).size().unstack(fill_value=0)
+        yearly_zones = yearly_zones.reindex(columns=ZONE_LABELS, fill_value=0)
+        yearly_pct = yearly_zones.div(yearly_zones.sum(axis=1), axis=0) * 100
+
+        fig_trend = go.Figure()
+        for label, color in zip(ZONE_LABELS, ZONE_COLORS):
+            fig_trend.add_trace(go.Bar(
+                x=yearly_pct.index.astype(str), y=yearly_pct[label],
+                name=label, marker=dict(color=color, line=dict(color=BG, width=0.5)),
+                hovertemplate=f"<b>{label}</b><br>%{{y:.0f}}% of laps<extra></extra>",
+            ))
+        layout_trend = _layout("", "% of laps")
+        layout_trend["barmode"] = "stack"
+        layout_trend["legend"] = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+                                      font=dict(color=DIM, family=FONT_H, size=10))
+        layout_trend["height"] = 400
+        layout_trend["margin"] = dict(l=50, r=20, t=60, b=30)
+        fig_trend.update_layout(**layout_trend)
+        st.plotly_chart(fig_trend, use_container_width=True)
 
 # ── Theme Selector (bottom of page) ─────────────────
 divider()
