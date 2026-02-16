@@ -7,7 +7,7 @@
 [![Garmin](https://img.shields.io/badge/Garmin-Connect-007CC3?logo=garmin&logoColor=white)](https://connect.garmin.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A Python CLI that pulls your running activities from Garmin Connect, stores them in SQLite, and visualizes trends via a Streamlit dashboard or Jupyter notebook. Features multi-theme UI with Art Deco and Tokyo Neo aesthetics, period comparison, personal records, and animated visual boards.
+A Python CLI that pulls your running activities from Garmin Connect, stores them in SQLite, and visualizes trends via a Streamlit dashboard or Jupyter notebook. Features multi-theme UI with Art Deco, Tokyo Neo, and Blade Runner 2049 aesthetics, period comparison, personal records, and animated visual boards.
 
 ## Screenshots
 
@@ -19,12 +19,20 @@ A Python CLI that pulls your running activities from Garmin Connect, stores them
   <img src="docs/tokyo-neo-charts.png" alt="Tokyo Neo — Trend charts" width="700">
 </p>
 
+### Blade Runner 2049 Theme
+<p align="center">
+  <img src="docs/bladerunner.png" alt="Blade Runner 2049 — Dashboard with compare & radar chart" width="700">
+</p>
+<p align="center">
+  <img src="docs/heartrate.png" alt="Blade Runner 2049 — Heart rate trends" width="700">
+</p>
+
 ## Features
 
 - **Pull** running activities from Garmin Connect with token caching and MFA support
 - **Store** in SQLite with automatic deduplication and data cleaning filters
 - **Visualize** via interactive Plotly charts (distance, pace, heart rate, cadence, elevation, calories)
-- **Themes** — Art Deco (emerald/jade + noir) and Tokyo Neo (neon cyan + hot pink) with hover effects
+- **Themes** — Art Deco (emerald/jade + noir), Tokyo Neo (neon cyan + hot pink), and Blade Runner 2049 (dusty amber + steel blue) with hover effects
 - **Compare** any two time periods side-by-side with delta indicators and radar chart
 - **Summary** stats — weekly/monthly breakdowns and personal records
 - **Export** to CSV or JSON for external analysis
