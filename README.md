@@ -18,13 +18,16 @@ A Python CLI that pulls your running activities from Garmin Connect, stores them
 <p align="center">
   <img src="docs/tokyo-neo-charts.png" alt="Tokyo Neo — Trend charts" width="700">
 </p>
+<p align="center">
+  <img src="docs/compare2.png" alt="Tokyo Neo — Compare tab with radar chart" width="700">
+</p>
 
 ### Blade Runner 2049 Theme
 <p align="center">
-  <img src="docs/bladerunner.png" alt="Blade Runner 2049 — Dashboard with compare & radar chart" width="700">
+  <img src="docs/bladerunner.png" alt="Blade Runner 2049 — Dashboard overview" width="700">
 </p>
 <p align="center">
-  <img src="docs/heartrate.png" alt="Blade Runner 2049 — Heart rate trends" width="700">
+  <img src="docs/trends.png" alt="Blade Runner 2049 — Effort trends (duration & calories)" width="700">
 </p>
 
 ## Features
