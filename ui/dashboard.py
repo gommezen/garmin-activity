@@ -1,9 +1,8 @@
-"""Streamlit dashboard for Garmin running activities."""
+"""Streamlit dashboard for Garmin running activities — Multi-theme Edition."""
 
 import sys
 from pathlib import Path
 
-# Add project root to path so src/ imports work
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 import pandas as pd
@@ -12,85 +11,649 @@ import streamlit as st
 from src.db import load_dataframe
 from src.stats import weekly_summary, monthly_summary, personal_records
 
-st.set_page_config(page_title="Garmin Running", page_icon="🏃", layout="wide")
-st.title("🏃 Garmin Running Dashboard")
+st.set_page_config(page_title="Garmin Running", page_icon="\u25c6", layout="wide")
 
+# ── Preload all fonts ─────────────────────────────────
+st.markdown("""<style>
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Josefin+Sans:wght@300;400;600&family=Michroma&family=Outfit:wght@300;400;500&family=Poiret+One&family=Sora:wght@300;400;500;600&display=swap');
+</style>""", unsafe_allow_html=True)
+
+# ── Theme Selector ────────────────────────────────────
+theme = st.radio("Theme", ["Art Deco", "Tokyo Neo"], horizontal=True)
+
+# ── Theme Configuration ───────────────────────────────
+if theme == "Art Deco":
+    PRIMARY, SECONDARY = "#00c9a7", "#c9a84c"
+    TXT, DIM, MUTED = "#e8e0d0", "#a09880", "#605848"
+    SURFACE, BG, BORDER = "#12121e", "#0a0a0f", "#1e1e2a"
+    PLOT_BG = "rgba(18,18,30,0.25)"
+    GRID = "rgba(30,30,42,0.4)"
+    FONT_H, FONT_B = "Josefin Sans, sans-serif", "Jost, sans-serif"
+    MARKER = "diamond"
+    CC = {
+        "dist": "#00c9a7", "pace": "#c9a84c", "hr1": "#c25a6e", "hr2": "#e05577",
+        "dur": "#4ecdc4", "cal": "#8b7355", "cad": "#5a8c72", "elev": "#8b7355",
+    }
+else:
+    PRIMARY, SECONDARY = "#00f0ff", "#ff2d78"
+    TXT, DIM, MUTED = "#e6edf3", "#8b949e", "#484f58"
+    SURFACE, BG, BORDER = "#161b22", "#0d1117", "#21262d"
+    PLOT_BG = "rgba(22,27,34,0.25)"
+    GRID = "rgba(33,38,45,0.4)"
+    FONT_H, FONT_B = "Sora, sans-serif", "Outfit, sans-serif"
+    MARKER = "circle"
+    CC = {
+        "dist": "#00f0ff", "pace": "#ff2d78", "hr1": "#7c3aed", "hr2": "#a855f7",
+        "dur": "#00ff88", "cal": "#ffb800", "cad": "#06b6d4", "elev": "#f97316",
+    }
+
+RADIUS = "0" if theme == "Art Deco" else "8px"
+
+# ╔══════════════════════════════════════════════════════╗
+# ║                  ART DECO CSS                        ║
+# ╚══════════════════════════════════════════════════════╝
+
+ART_DECO_CSS = """
+/* ═══ GLOBAL ═══ */
+.stApp {
+    background: linear-gradient(180deg, #0a0a0f 0%, #08080d 50%, #0a0a12 100%);
+    font-family: 'Jost', sans-serif;
+}
+section[data-testid="stSidebar"] { display: none; }
+header[data-testid="stHeader"] { background: transparent; }
+.block-container { max-width: 1200px; padding-top: 0.5rem; }
+
+h1, h2, h3 {
+    font-family: 'Josefin Sans', sans-serif !important;
+    font-weight: 300 !important; letter-spacing: 2px !important; color: #e8e0d0 !important;
+}
+
+/* ═══ METRICS ═══ */
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, #12121e 0%, #16162a 100%);
+    border: 1px solid #1e1e2a; border-top: 2px solid #00c9a7;
+    padding: 1rem 0.8rem; border-radius: 0;
+    transition: all 0.35s ease;
+}
+[data-testid="stMetric"]:hover {
+    border-color: #c9a84c40;
+    border-top-color: #00c9a7;
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.08), 0 2px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+[data-testid="stMetricLabel"] {
+    font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 2px !important; text-transform: uppercase !important;
+    font-size: 0.7rem !important; color: #c9a84c !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Jost', sans-serif !important; font-weight: 400 !important;
+    color: #00c9a7 !important; font-size: 1.4rem !important;
+}
+[data-testid="stMetricDelta"] { font-family: 'Jost', sans-serif !important; font-size: 0.8rem !important; }
+
+/* ═══ TABS ═══ */
+.stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #c9a84c40; background: transparent; }
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 3px !important; text-transform: uppercase !important;
+    font-size: 0.78rem !important; color: #605848 !important;
+    padding: 0.8rem 1.5rem !important; background: transparent !important;
+}
+.stTabs [data-baseweb="tab"]:hover { color: #a09880 !important; }
+.stTabs [aria-selected="true"] { color: #00c9a7 !important; }
+.stTabs [data-baseweb="tab-highlight"] { background-color: #00c9a7 !important; }
+.stTabs [data-baseweb="tab-border"] { background-color: #c9a84c40 !important; }
+
+div[data-testid="stRadio"] label {
+    font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 1px !important; font-size: 0.75rem !important;
+}
+.stDateInput input {
+    background-color: #12121e !important; border: 1px solid #1e1e2a !important;
+    color: #e8e0d0 !important; border-radius: 0 !important;
+}
+hr { border-color: #c9a84c40 !important; }
+[data-testid="stCaptionContainer"] {
+    font-family: 'Jost', sans-serif !important; color: #605848 !important; letter-spacing: 1px !important;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #1e1e2a; }
+
+/* ═══ ART DECO DECORATIONS ═══ */
+.deco-header { text-align: center; padding: 1.5rem 0 0.5rem; }
+.deco-ornament { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0.4rem 0; }
+.deco-diamond { width: 8px; height: 8px; background: #00c9a7; transform: rotate(45deg); display: inline-block; }
+.deco-diamond.gold { background: #c9a84c; }
+.deco-diamond.lg { width: 10px; height: 10px; }
+.deco-diamond.sm { width: 5px; height: 5px; opacity: 0.5; }
+.deco-line { height: 1px; width: 100px; background: linear-gradient(to right, transparent, #c9a84c80, transparent); display: inline-block; }
+.deco-title { font-family: 'Poiret One', cursive; font-size: 2.4rem; color: #e8e0d0; letter-spacing: 14px; margin: 0.2rem 0 0; text-transform: uppercase; }
+.deco-subtitle { font-family: 'Josefin Sans', sans-serif; font-weight: 300; font-size: 0.7rem; color: #c9a84c; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 0.2rem; }
+.deco-meta { font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.7rem; color: #605848; letter-spacing: 2px; margin-top: 0.3rem; }
+
+.deco-divider { display: flex; align-items: center; justify-content: center; margin: 1.2rem 0; gap: 10px; }
+.deco-div-line { flex: 1; max-width: 160px; height: 1px; }
+.deco-div-line.l { background: linear-gradient(to right, transparent, #c9a84c60); }
+.deco-div-line.r { background: linear-gradient(to left, transparent, #c9a84c60); }
+
+/* ═══ SHARED CARD STYLES (Art Deco) ═══ */
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.m-card {
+    background: linear-gradient(145deg, #12121e 0%, #16162a 100%);
+    border: 1px solid #1e1e2a; border-top: 2px solid #00c9a7;
+    padding: 1rem 0.6rem; text-align: center; position: relative; overflow: hidden;
+    transition: all 0.35s ease;
+}
+.m-card:hover {
+    border-color: #c9a84c30;
+    border-top-color: #00c9a7;
+    box-shadow: 0 0 18px rgba(201, 168, 76, 0.08), 0 2px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+.m-card::after { content: ''; position: absolute; top: 2px; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,201,167,0.04) 0%, transparent 60%); pointer-events: none; transition: opacity 0.35s ease; }
+.m-card:hover::after { background: linear-gradient(135deg, rgba(0,201,167,0.08) 0%, transparent 60%); }
+.m-card .m-label { font-family: 'Josefin Sans', sans-serif; font-weight: 300; letter-spacing: 3px; font-size: 0.6rem; color: #c9a84c; text-transform: uppercase; margin-bottom: 0.4rem; }
+.m-card .m-val { font-family: 'Jost', sans-serif; font-weight: 400; font-size: 1.4rem; color: #00c9a7; transition: color 0.35s ease; }
+.m-card:hover .m-val { color: #00e5bf; }
+.m-card .m-unit { font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.7rem; color: #605848; margin-left: 2px; }
+
+.pr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.pr-card {
+    background: linear-gradient(145deg, #12121e, #18182c); border: 1px solid #1e1e2a;
+    border-left: 3px solid #c9a84c; padding: 1rem; transition: all 0.35s ease;
+}
+.pr-card:hover {
+    border-color: #c9a84c30;
+    border-left-color: #c9a84c;
+    box-shadow: -3px 0 15px rgba(201, 168, 76, 0.06), 0 2px 10px rgba(0, 0, 0, 0.25);
+    transform: translateX(3px);
+}
+.pr-card .pr-label { font-family: 'Josefin Sans', sans-serif; font-weight: 300; letter-spacing: 2px; font-size: 0.6rem; color: #c9a84c; text-transform: uppercase; margin-bottom: 0.3rem; }
+.pr-card .pr-val { font-family: 'Jost', sans-serif; font-weight: 500; font-size: 1.3rem; color: #00c9a7; transition: color 0.35s ease; }
+.pr-card:hover .pr-val { color: #00e5bf; }
+.pr-card .pr-detail { font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.72rem; color: #605848; margin-top: 0.2rem; }
+
+.sec-label { font-family: 'Josefin Sans', sans-serif; font-weight: 300; letter-spacing: 3px; font-size: 0.8rem; color: #e8e0d0; text-transform: uppercase; display: flex; align-items: center; gap: 12px; margin: 1rem 0 0.5rem; }
+.sec-label .sec-line { flex: 1; height: 1px; background: linear-gradient(to right, #c9a84c40, transparent); }
+.latest-date { font-family: 'Josefin Sans', sans-serif; font-weight: 300; letter-spacing: 2px; font-size: 0.85rem; color: #a09880; text-transform: uppercase; margin-bottom: 0.3rem; }
+
+@media (max-width: 768px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .pr-grid { grid-template-columns: 1fr; }
+    .deco-title { font-size: 1.6rem; letter-spacing: 8px; }
+}
+"""
+
+# ╔══════════════════════════════════════════════════════╗
+# ║                  TOKYO NEO CSS                       ║
+# ╚══════════════════════════════════════════════════════╝
+
+TOKYO_NEO_CSS = """
+/* ═══ GLOBAL ═══ */
+.stApp {
+    background: linear-gradient(135deg, #0d1117 0%, #0a0e1a 50%, #0d1117 100%);
+    font-family: 'Outfit', sans-serif;
+}
+section[data-testid="stSidebar"] { display: none; }
+header[data-testid="stHeader"] { background: transparent; }
+.block-container { max-width: 1200px; padding-top: 0.5rem; }
+
+h1, h2, h3 {
+    font-family: 'Sora', sans-serif !important;
+    font-weight: 400 !important; letter-spacing: 1px !important; color: #e6edf3 !important;
+}
+
+/* ═══ METRICS ═══ */
+[data-testid="stMetric"] {
+    background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(0, 240, 255, 0.1);
+    border-top: 2px solid #00f0ff; padding: 1rem 0.8rem; border-radius: 8px;
+    backdrop-filter: blur(8px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-testid="stMetric"]:hover {
+    border-color: rgba(0, 240, 255, 0.35);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.12), 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+[data-testid="stMetricLabel"] {
+    font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 2px !important; text-transform: uppercase !important;
+    font-size: 0.7rem !important; color: #8b949e !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Outfit', sans-serif !important; font-weight: 500 !important;
+    color: #00f0ff !important; font-size: 1.4rem !important;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+[data-testid="stMetricDelta"] { font-family: 'Outfit', sans-serif !important; font-size: 0.8rem !important; }
+
+/* ═══ TABS ═══ */
+.stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #21262d; background: transparent; }
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 2px !important; text-transform: uppercase !important;
+    font-size: 0.78rem !important; color: #484f58 !important;
+    padding: 0.8rem 1.5rem !important; background: transparent !important;
+    transition: color 0.2s ease;
+}
+.stTabs [data-baseweb="tab"]:hover { color: #8b949e !important; }
+.stTabs [aria-selected="true"] { color: #00f0ff !important; text-shadow: 0 0 8px rgba(0, 240, 255, 0.3); }
+.stTabs [data-baseweb="tab-highlight"] { background-color: #00f0ff !important; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+.stTabs [data-baseweb="tab-border"] { background-color: #21262d !important; }
+
+div[data-testid="stRadio"] label {
+    font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 1px !important; font-size: 0.75rem !important;
+}
+.stDateInput input {
+    background-color: #161b22 !important; border: 1px solid #21262d !important;
+    color: #e6edf3 !important; border-radius: 6px !important;
+}
+hr { border-color: #21262d !important; }
+[data-testid="stCaptionContainer"] {
+    font-family: 'Outfit', sans-serif !important; color: #484f58 !important; letter-spacing: 1px !important;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0d1117; }
+::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+
+/* ═══ NEO HEADER ═══ */
+.neo-header { text-align: center; padding: 1.5rem 0 0.5rem; }
+.neo-header-line {
+    height: 2px; max-width: 400px; margin: 0 auto; border-radius: 1px;
+    background: linear-gradient(90deg, transparent, #00f0ff, #ff2d78, #7c3aed, #00f0ff, transparent);
+    background-size: 200% auto; animation: neo-flow 4s linear infinite;
+}
+@keyframes neo-flow { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+
+.neo-dots { display: flex; justify-content: center; gap: 10px; margin: 0.5rem 0; }
+.neo-dot {
+    width: 6px; height: 6px; background: #ff2d78; border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 45, 120, 0.5); animation: neo-pulse 2s ease-in-out infinite;
+}
+@keyframes neo-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+.neo-title { font-family: 'Michroma', sans-serif; font-size: 1.8rem; color: #e6edf3; letter-spacing: 8px; margin: 0.3rem 0; text-transform: uppercase; }
+.neo-accent { color: #00f0ff; text-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
+.neo-subtitle { font-family: 'Sora', sans-serif; font-weight: 300; font-size: 0.65rem; color: #484f58; letter-spacing: 4px; text-transform: uppercase; }
+.neo-meta { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 0.7rem; color: #484f58; letter-spacing: 2px; margin-top: 0.3rem; }
+
+/* ═══ NEO DIVIDER ═══ */
+.neo-divider { display: flex; align-items: center; justify-content: center; margin: 1.2rem 0; gap: 12px; }
+.neo-div-line { flex: 1; max-width: 120px; height: 1px; }
+.neo-div-line.l { background: linear-gradient(to right, transparent, #00f0ff40); }
+.neo-div-line.r { background: linear-gradient(to left, transparent, #00f0ff40); }
+
+/* ═══ METRIC GRID (Neo) ═══ */
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.m-card {
+    background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(0, 240, 255, 0.1);
+    border-top: 2px solid #00f0ff; padding: 1rem 0.6rem; text-align: center;
+    border-radius: 8px; backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden;
+}
+.m-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,240,255,0.04) 0%, transparent 60%); pointer-events: none; }
+.m-card:hover {
+    border-color: rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.15), 0 4px 20px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px);
+}
+.m-card .m-label { font-family: 'Sora', sans-serif; font-weight: 300; letter-spacing: 2px; font-size: 0.6rem; color: #8b949e; text-transform: uppercase; margin-bottom: 0.4rem; }
+.m-card .m-val { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 1.4rem; color: #00f0ff; text-shadow: 0 0 10px rgba(0, 240, 255, 0.3); transition: text-shadow 0.3s ease; }
+.m-card:hover .m-val { text-shadow: 0 0 20px rgba(0, 240, 255, 0.5); }
+.m-card .m-unit { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 0.7rem; color: #484f58; margin-left: 2px; }
+
+/* ═══ PR CARDS (Neo) ═══ */
+.pr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.pr-card {
+    background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255, 45, 120, 0.1);
+    border-left: 3px solid #ff2d78; padding: 1rem; border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pr-card:hover {
+    border-color: rgba(255, 45, 120, 0.4);
+    box-shadow: -4px 0 20px rgba(255, 45, 120, 0.1), 0 4px 15px rgba(0, 0, 0, 0.2);
+    transform: translateX(4px);
+}
+.pr-card .pr-label { font-family: 'Sora', sans-serif; font-weight: 300; letter-spacing: 2px; font-size: 0.6rem; color: #8b949e; text-transform: uppercase; margin-bottom: 0.3rem; }
+.pr-card .pr-val { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 1.3rem; color: #ff2d78; text-shadow: 0 0 8px rgba(255, 45, 120, 0.2); }
+.pr-card .pr-detail { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 0.72rem; color: #484f58; margin-top: 0.2rem; }
+
+/* ═══ SECTION LABEL (Neo) ═══ */
+.sec-label { font-family: 'Sora', sans-serif; font-weight: 300; letter-spacing: 3px; font-size: 0.8rem; color: #e6edf3; text-transform: uppercase; display: flex; align-items: center; gap: 12px; margin: 1rem 0 0.5rem; }
+.sec-label .sec-line { flex: 1; height: 1px; background: linear-gradient(to right, #21262d, transparent); }
+.latest-date { font-family: 'Sora', sans-serif; font-weight: 300; letter-spacing: 2px; font-size: 0.85rem; color: #8b949e; text-transform: uppercase; margin-bottom: 0.3rem; }
+
+/* ═══ VISUAL BOARD ═══ */
+.neo-board {
+    margin: 1rem 0; padding: 1.2rem; background: rgba(22, 27, 34, 0.6);
+    border: 1px solid #21262d; border-radius: 10px; backdrop-filter: blur(4px);
+}
+.neo-board-title {
+    font-family: 'Sora', sans-serif; font-weight: 300; font-size: 0.6rem;
+    color: #484f58; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 0.8rem;
+}
+.board-row { display: flex; align-items: center; margin: 0.7rem 0; gap: 12px; }
+.board-label { width: 75px; font-family: 'Sora', sans-serif; font-weight: 300; font-size: 0.65rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+.board-bar-wrap { flex: 1; height: 22px; background: #161b22; border-radius: 6px; position: relative; overflow: visible; }
+.board-bar {
+    height: 100%; border-radius: 6px; transform-origin: left;
+    animation: bar-grow 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: relative;
+}
+.board-bar.cyan { background: linear-gradient(90deg, #00f0ff, rgba(0, 240, 255, 0.6)); box-shadow: 0 0 12px rgba(0, 240, 255, 0.15); }
+.board-bar.green { background: linear-gradient(90deg, #00ff88, rgba(0, 255, 136, 0.6)); box-shadow: 0 0 12px rgba(0, 255, 136, 0.15); }
+.board-bar.pink { background: linear-gradient(90deg, #ff2d78, rgba(255, 45, 120, 0.6)); box-shadow: 0 0 12px rgba(255, 45, 120, 0.15); }
+.board-bar.amber { background: linear-gradient(90deg, #ffb800, rgba(255, 184, 0, 0.6)); box-shadow: 0 0 12px rgba(255, 184, 0, 0.15); }
+@keyframes bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.board-avg {
+    position: absolute; top: -4px; width: 2px; height: calc(100% + 8px);
+    background: #ff2d78; box-shadow: 0 0 8px rgba(255, 45, 120, 0.5); z-index: 2;
+}
+.board-avg span {
+    position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+    font-family: 'Sora', sans-serif; font-size: 0.45rem; font-weight: 400;
+    color: #ff2d78; letter-spacing: 1px;
+}
+.board-val { width: 80px; text-align: right; font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 0.95rem; color: #00f0ff; flex-shrink: 0; }
+.board-unit { font-weight: 300; font-size: 0.65rem; color: #484f58; margin-left: 2px; }
+
+@media (max-width: 768px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .pr-grid { grid-template-columns: 1fr; }
+    .neo-title { font-size: 1.3rem; letter-spacing: 4px; }
+}
+"""
+
+# ── Inject Theme CSS ──────────────────────────────────
+st.markdown(f"<style>{ART_DECO_CSS if theme == 'Art Deco' else TOKYO_NEO_CSS}</style>",
+            unsafe_allow_html=True)
+
+
+# ── Helpers ───────────────────────────────────────────
+
+def divider():
+    if theme == "Art Deco":
+        st.markdown("""<div class="deco-divider">
+            <div class="deco-div-line l"></div><span class="deco-diamond sm"></span>
+            <span class="deco-diamond gold lg"></span><span class="deco-diamond sm"></span>
+            <div class="deco-div-line r"></div></div>""", unsafe_allow_html=True)
+    else:
+        st.markdown("""<div class="neo-divider">
+            <div class="neo-div-line l"></div>
+            <span class="neo-dot" style="width:4px;height:4px;animation-duration:3s;"></span>
+            <span class="neo-dot" style="width:5px;height:5px;"></span>
+            <span class="neo-dot" style="width:4px;height:4px;animation-duration:3s;animation-delay:0.5s;"></span>
+            <div class="neo-div-line r"></div></div>""", unsafe_allow_html=True)
+
+
+def section_label(text):
+    if theme == "Art Deco":
+        st.markdown(f'<div class="sec-label"><span class="deco-diamond sm gold"></span>'
+                    f'{text}<div class="sec-line"></div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="sec-label"><span style="width:4px;height:4px;background:#ff2d78;'
+                    f'border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(255,45,120,0.4);"></span>'
+                    f'{text}<div class="sec-line"></div></div>', unsafe_allow_html=True)
+
+
+def _layout(title, unit):
+    return dict(
+        title=dict(text=title.upper(), font=dict(family=FONT_H, size=13, color=TXT), x=0, xanchor="left"),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=PLOT_BG,
+        font=dict(family=FONT_B, color=DIM, size=11),
+        xaxis=dict(gridcolor=GRID, linecolor=BORDER, tickfont=dict(color=MUTED, size=10), title=None),
+        yaxis=dict(title=dict(text=unit, font=dict(size=11, color=DIM)),
+                   gridcolor=GRID, linecolor=BORDER, tickfont=dict(color=MUTED, size=10)),
+        height=350, margin=dict(l=50, r=20, t=50, b=30), hovermode="x unified",
+        hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
+                        font=dict(color=TXT, family=FONT_B, size=12)),
+    )
+
+
+def make_chart(df, x, y, title, unit, color):
+    data = df.dropna(subset=[y])
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=data[x], y=data[y], mode="lines+markers",
+        marker=dict(size=5, color=color, symbol=MARKER, line=dict(width=1, color=BG)),
+        line=dict(color=color, width=2),
+        hovertemplate=f"%{{x|%b %d, %Y}}<br><b>%{{y:.1f}} {unit}</b><extra></extra>",
+    ))
+    fig.update_layout(**_layout(title, unit))
+    return fig
+
+
+def make_dual_chart(df, x, y1, y2, title, label1, label2, unit, c1, c2):
+    data = df.dropna(subset=[y1, y2])
+    fig = go.Figure()
+    for y, label, color in [(y1, label1, c1), (y2, label2, c2)]:
+        fig.add_trace(go.Scatter(
+            x=data[x], y=data[y], name=label, mode="lines+markers",
+            marker=dict(size=5, color=color, symbol=MARKER, line=dict(width=1, color=BG)),
+            line=dict(color=color, width=2),
+            hovertemplate=f"%{{x|%b %d, %Y}}<br><b>{label}: %{{y:.0f}} {unit}</b><extra></extra>",
+        ))
+    layout = _layout(title, unit)
+    layout["legend"] = dict(orientation="h", yanchor="bottom", y=1.02,
+                            font=dict(color=DIM, family=FONT_H, size=11))
+    fig.update_layout(**layout)
+    return fig
+
+
+def neo_visual_board(latest, df):
+    """Animated bar chart comparing latest run to averages (Tokyo Neo only)."""
+    bars = []
+    colors = ["cyan", "pink", "green", "amber"]
+
+    # Distance
+    max_d = df["distance_km"].max()
+    avg_d = df["distance_km"].mean()
+    if max_d > 0:
+        bars.append(("Distance", f"{latest['distance_km']:.1f}", "km",
+                      latest["distance_km"] / max_d * 100, avg_d / max_d * 100, colors[0]))
+
+    # Pace (inverted — longer bar = faster)
+    min_p, max_p = df["pace_min_km"].min(), df["pace_min_km"].max()
+    rng = max_p - min_p if max_p > min_p else 1
+    avg_p = df["pace_min_km"].mean()
+    pm, ps = int(latest["pace_min_km"]), int((latest["pace_min_km"] % 1) * 60)
+    bars.append(("Pace", f"{pm}:{ps:02d}", "/km",
+                  max((max_p - latest["pace_min_km"]) / rng * 100, 3),
+                  max((max_p - avg_p) / rng * 100, 3), colors[1]))
+
+    # Duration
+    max_dur = df["duration_min"].max()
+    avg_dur = df["duration_min"].mean()
+    if max_dur > 0:
+        bars.append(("Duration", f"{int(latest['duration_min'])}", "min",
+                      latest["duration_min"] / max_dur * 100, avg_dur / max_dur * 100, colors[2]))
+
+    # Cadence
+    if pd.notna(latest["cadence"]):
+        max_c = df["cadence"].dropna().max()
+        avg_c = df["cadence"].dropna().mean()
+        if max_c > 0:
+            bars.append(("Cadence", f"{latest['cadence']:.0f}", "spm",
+                          latest["cadence"] / max_c * 100, avg_c / max_c * 100, colors[3]))
+
+    html = '<div class="neo-board"><div class="neo-board-title">Latest vs Your Range</div>'
+    for label, val, unit, pct, avg_pct, clr in bars:
+        html += f'''<div class="board-row">
+            <div class="board-label">{label}</div>
+            <div class="board-bar-wrap">
+                <div class="board-bar {clr}" style="width: {pct}%;"></div>
+                <div class="board-avg" style="left: {avg_pct}%;"><span>AVG</span></div>
+            </div>
+            <div class="board-val">{val}<span class="board-unit">{unit}</span></div>
+        </div>'''
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def neo_radar_chart(stats_a, stats_b, label_a, label_b):
+    """Radar chart comparing two periods (Tokyo Neo only)."""
+    categories = ["Distance", "Runs", "Speed", "Cadence", "Elevation", "Calories"]
+
+    def get_vals(s):
+        pace = s["Avg Pace"]
+        return [
+            s["Total km"],
+            s["Runs"],
+            1 / pace if pd.notna(pace) and pace > 0 else 0,
+            s.get("Avg Cadence", 0) or 0,
+            s["Total Elevation"] or 0,
+            s["Total Calories"] or 0,
+        ]
+
+    raw_a, raw_b = get_vals(stats_a), get_vals(stats_b)
+
+    # Normalize 0-100
+    norm_a, norm_b = [], []
+    for va, vb in zip(raw_a, raw_b):
+        mx = max(abs(va), abs(vb))
+        if mx > 0:
+            norm_a.append(va / mx * 100)
+            norm_b.append(vb / mx * 100)
+        else:
+            norm_a.append(50)
+            norm_b.append(50)
+
+    fig = go.Figure()
+    for vals, name, color, fill in [
+        (norm_a, label_a, "#00f0ff", "rgba(0,240,255,0.08)"),
+        (norm_b, label_b, "#ff2d78", "rgba(255,45,120,0.08)"),
+    ]:
+        fig.add_trace(go.Scatterpolar(
+            r=vals + [vals[0]], theta=categories + [categories[0]],
+            fill="toself", name=name,
+            line=dict(color=color, width=2), fillcolor=fill,
+            marker=dict(size=5),
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(visible=True, range=[0, 105], gridcolor="#21262d",
+                            linecolor="#21262d", tickfont=dict(size=8, color="#484f58")),
+            angularaxis=dict(gridcolor="#21262d", linecolor="#21262d",
+                             tickfont=dict(size=11, color="#8b949e", family="Sora, sans-serif")),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Outfit, sans-serif", color="#8b949e"),
+        legend=dict(font=dict(color="#8b949e", family="Sora, sans-serif", size=11),
+                    orientation="h", yanchor="bottom", y=-0.15, x=0.5, xanchor="center"),
+        height=400, margin=dict(l=60, r=60, t=30, b=50),
+    )
+    return fig
+
+
+# ── Load Data ─────────────────────────────────────────
 
 @st.cache_data(ttl=60)
 def load_data():
     return load_dataframe()
 
 
-def make_chart(df, x, y, title, unit, color="#2196F3"):
-    data = df.dropna(subset=[y])
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=data[x], y=data[y],
-        mode="lines+markers",
-        marker=dict(size=8, color=color),
-        line=dict(color=color, width=2),
-        hovertemplate=f"%{{x|%b %d, %Y}}<br><b>%{{y:.1f}} {unit}</b><extra></extra>",
-    ))
-    fig.update_layout(
-        title=title,
-        xaxis_title=None, yaxis_title=unit,
-        height=350, margin=dict(l=40, r=20, t=40, b=30),
-        hovermode="x unified",
-    )
-    return fig
-
-
-def make_dual_chart(df, x, y1, y2, title, label1, label2, unit, c1="#E91E63", c2="#9C27B0"):
-    data = df.dropna(subset=[y1, y2])
-    fig = go.Figure()
-    for y, label, color in [(y1, label1, c1), (y2, label2, c2)]:
-        fig.add_trace(go.Scatter(
-            x=data[x], y=data[y],
-            name=label,
-            mode="lines+markers",
-            marker=dict(size=8, color=color),
-            line=dict(color=color, width=2),
-            hovertemplate=f"%{{x|%b %d, %Y}}<br><b>{label}: %{{y:.0f}} {unit}</b><extra></extra>",
-        ))
-    fig.update_layout(
-        title=title,
-        xaxis_title=None, yaxis_title=unit,
-        height=350, margin=dict(l=40, r=20, t=40, b=30),
-        hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
-    )
-    return fig
-
-
 df = load_data()
+
+# ── Header ────────────────────────────────────────────
+
+activity_count = len(df) if not df.empty else 0
+year_range = ""
+if not df.empty:
+    y1 = df["start_time"].min().year
+    y2 = df["start_time"].max().year
+    year_range = f"{y1}\u2013{y2}" if y1 != y2 else str(y1)
+
+if theme == "Art Deco":
+    st.markdown(f"""<div class="deco-header">
+        <div class="deco-ornament"><span class="deco-diamond sm"></span><span class="deco-line"></span>
+        <span class="deco-diamond gold"></span><span class="deco-diamond lg"></span>
+        <span class="deco-diamond gold"></span><span class="deco-line"></span>
+        <span class="deco-diamond sm"></span></div>
+        <div class="deco-title">Garmin Running</div>
+        <div class="deco-subtitle">Performance Dashboard</div>
+        <div class="deco-ornament"><span class="deco-diamond sm"></span><span class="deco-line"></span>
+        <span class="deco-diamond gold"></span><span class="deco-diamond lg"></span>
+        <span class="deco-diamond gold"></span><span class="deco-line"></span>
+        <span class="deco-diamond sm"></span></div>
+        <div class="deco-meta">{activity_count:,} activities \u00b7 {year_range}</div>
+    </div>""", unsafe_allow_html=True)
+else:
+    st.markdown(f"""<div class="neo-header">
+        <div class="neo-header-line"></div>
+        <div class="neo-dots"><span class="neo-dot"></span>
+        <span class="neo-dot" style="animation-delay:0.3s;"></span>
+        <span class="neo-dot" style="animation-delay:0.6s;"></span></div>
+        <div class="neo-title">GARMIN <span class="neo-accent">RUNNING</span></div>
+        <div class="neo-subtitle">// performance dashboard</div>
+        <div class="neo-dots"><span class="neo-dot" style="animation-delay:0.9s;"></span>
+        <span class="neo-dot" style="animation-delay:0.6s;"></span>
+        <span class="neo-dot" style="animation-delay:0.3s;"></span></div>
+        <div class="neo-header-line"></div>
+        <div class="neo-meta">{activity_count:,} activities \u00b7 {year_range}</div>
+    </div>""", unsafe_allow_html=True)
 
 if df.empty:
     st.warning("No data yet. Run `python pull_activities.py running` to pull activities.")
     st.stop()
 
-# --- Latest run summary ---
+
+# ── Latest Run ────────────────────────────────────────
+
 latest = df.iloc[-1]
-st.subheader(f"Latest Run — {latest['start_time'].strftime('%b %d, %Y')}")
+date_str = latest["start_time"].strftime("%b %d, %Y").upper()
+st.markdown(f'<div class="latest-date">Latest Run \u2014 {date_str}</div>', unsafe_allow_html=True)
 
-cols = st.columns(4)
-cols[0].metric("Distance", f"{latest['distance_km']:.2f} km")
-cols[1].metric("Duration", f"{int(latest['duration_min'])}:{int(latest['duration_s'] % 60):02d} min")
-cols[2].metric("Pace", f"{int(latest['pace_min_km'])}:{int((latest['pace_min_km'] % 1) * 60):02d} /km")
-cols[3].metric("Calories", f"{latest['calories']:.0f} kcal")
+pace_m = int(latest["pace_min_km"])
+pace_s = int((latest["pace_min_km"] % 1) * 60)
+dur_m = int(latest["duration_min"])
+dur_s = int(latest["duration_s"] % 60)
 
-cols2 = st.columns(4)
+row1 = [
+    ("Distance", f"{latest['distance_km']:.2f}", "km"),
+    ("Duration", f"{dur_m}:{dur_s:02d}", "min"),
+    ("Pace", f"{pace_m}:{pace_s:02d}", "/km"),
+    ("Calories", f"{latest['calories']:.0f}", "kcal"),
+]
+html = '<div class="metric-grid">'
+for label, val, unit in row1:
+    html += (f'<div class="m-card"><div class="m-label">{label}</div>'
+             f'<div class="m-val">{val}<span class="m-unit">{unit}</span></div></div>')
+html += '</div>'
+st.markdown(html, unsafe_allow_html=True)
+
+row2 = []
 if pd.notna(latest["avg_hr"]):
-    cols2[0].metric("Avg HR", f"{latest['avg_hr']:.0f} bpm")
+    row2.append(("Avg HR", f"{latest['avg_hr']:.0f}", "bpm"))
 if pd.notna(latest["max_hr"]):
-    cols2[1].metric("Max HR", f"{latest['max_hr']:.0f} bpm")
+    row2.append(("Max HR", f"{latest['max_hr']:.0f}", "bpm"))
 if pd.notna(latest["elevation_gain"]):
-    cols2[2].metric("Elevation", f"+{latest['elevation_gain']:.0f} m")
+    row2.append(("Elevation", f"+{latest['elevation_gain']:.0f}", "m"))
 if pd.notna(latest["cadence"]):
-    cols2[3].metric("Cadence", f"{latest['cadence']:.0f} spm")
+    row2.append(("Cadence", f"{latest['cadence']:.0f}", "spm"))
 
-st.divider()
+if row2:
+    html2 = f'<div class="metric-grid" style="grid-template-columns: repeat({len(row2)}, 1fr);">'
+    for label, val, unit in row2:
+        html2 += (f'<div class="m-card"><div class="m-label">{label}</div>'
+                  f'<div class="m-val">{val}<span class="m-unit">{unit}</span></div></div>')
+    html2 += '</div>'
+    st.markdown(html2, unsafe_allow_html=True)
 
-# --- Time range filter ---
+# Tokyo Neo: visual board comparing latest run to averages
+if theme == "Tokyo Neo":
+    neo_visual_board(latest, df)
+
+divider()
+
+
+# ── Time Range ────────────────────────────────────────
+
 range_options = {"1 Month": 30, "3 Months": 90, "6 Months": 180, "1 Year": 365, "All Time": None}
 selected_range = st.radio("Time Range", list(range_options.keys()), index=4, horizontal=True)
 days = range_options[selected_range]
@@ -101,86 +664,109 @@ if days:
 else:
     filtered_df = df
 
-st.caption(f"Showing {len(filtered_df)} activities" + (f" from last {days} days" if days else ""))
+st.caption(f"{len(filtered_df)} activities" + (f" \u00b7 last {days} days" if days else " \u00b7 all time"))
 
-# --- Tabs ---
+
+# ── Tabs ──────────────────────────────────────────────
+
 tab_trends, tab_summary, tab_compare = st.tabs(["Trends", "Summary", "Compare"])
 
-# --- Trends tab ---
+# ── Trends ────────────────────────────────────────────
+
 with tab_trends:
-    st.subheader("Trends Over Time")
     t1, t2, t3, t4 = st.tabs(["Distance & Pace", "Heart Rate", "Effort", "Cadence & Elevation"])
 
     with t1:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "distance_km", "Distance", "km", "#2196F3"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "distance_km",
+                                       "Distance", "km", CC["dist"]), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "pace_min_km", "Pace", "min/km", "#FF5722"), use_container_width=True)
-
+            st.plotly_chart(make_chart(filtered_df, "start_time", "pace_min_km",
+                                       "Pace", "min/km", CC["pace"]), use_container_width=True)
     with t2:
-        st.plotly_chart(make_dual_chart(filtered_df, "start_time", "avg_hr", "max_hr", "Heart Rate", "Avg HR", "Max HR", "bpm"), use_container_width=True)
-
+        st.plotly_chart(make_dual_chart(filtered_df, "start_time", "avg_hr", "max_hr",
+                                        "Heart Rate", "Avg HR", "Max HR", "bpm",
+                                        CC["hr1"], CC["hr2"]), use_container_width=True)
     with t3:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "duration_min", "Duration", "min", "#4CAF50"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "duration_min",
+                                       "Duration", "min", CC["dur"]), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "calories", "Calories", "kcal", "#FF9800"), use_container_width=True)
-
+            st.plotly_chart(make_chart(filtered_df, "start_time", "calories",
+                                       "Calories", "kcal", CC["cal"]), use_container_width=True)
     with t4:
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "cadence", "Cadence", "spm", "#607D8B"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "cadence",
+                                       "Cadence", "spm", CC["cad"]), use_container_width=True)
         with col2:
-            st.plotly_chart(make_chart(filtered_df, "start_time", "elevation_gain", "Elevation Gain", "m", "#795548"), use_container_width=True)
+            st.plotly_chart(make_chart(filtered_df, "start_time", "elevation_gain",
+                                       "Elevation Gain", "m", CC["elev"]), use_container_width=True)
 
-# --- Summary tab ---
+# ── Summary ───────────────────────────────────────────
+
 with tab_summary:
-    # Personal records
     prs = personal_records(filtered_df)
-    st.subheader("Personal Records")
-    pr_cols = st.columns(3)
+    section_label("Personal Records")
+
+    pr_html = '<div class="pr-grid">'
     if "fastest_pace" in prs:
         pr = prs["fastest_pace"]
-        pr_cols[0].metric("Fastest Pace", pr["value"], f"{pr['distance']} — {pr['date']}")
+        pr_html += (f'<div class="pr-card"><div class="pr-label">Fastest Pace</div>'
+                    f'<div class="pr-val">{pr["value"]}</div>'
+                    f'<div class="pr-detail">{pr["distance"]} \u00b7 {pr["date"]}</div></div>')
     if "longest_run" in prs:
         pr = prs["longest_run"]
-        pr_cols[1].metric("Longest Run", pr["value"], f"{pr['pace']} — {pr['date']}")
+        pr_html += (f'<div class="pr-card"><div class="pr-label">Longest Run</div>'
+                    f'<div class="pr-val">{pr["value"]}</div>'
+                    f'<div class="pr-detail">{pr["pace"]} \u00b7 {pr["date"]}</div></div>')
     if "most_elevation" in prs:
         pr = prs["most_elevation"]
-        pr_cols[2].metric("Most Elevation", pr["value"], f"{pr['distance']} — {pr['date']}")
+        pr_html += (f'<div class="pr-card"><div class="pr-label">Most Elevation</div>'
+                    f'<div class="pr-val">{pr["value"]}</div>'
+                    f'<div class="pr-detail">{pr["distance"]} \u00b7 {pr["date"]}</div></div>')
+    pr_html += '</div>'
+    st.markdown(pr_html, unsafe_allow_html=True)
 
-    st.divider()
+    divider()
 
-    # Monthly summary
-    st.subheader("Monthly Summary")
+    section_label("Monthly Summary")
     monthly = monthly_summary(filtered_df)
-    monthly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence", "Avg HR", "Elevation (m)", "Calories"]
+    monthly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
+                        "Avg HR", "Elevation (m)", "Calories"]
     st.dataframe(monthly, use_container_width=True)
 
-    # Weekly summary
-    st.subheader("Weekly Summary")
+    section_label("Weekly Summary")
     weekly = weekly_summary(filtered_df)
-    weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence", "Avg HR", "Elevation (m)", "Calories"]
+    weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
+                       "Avg HR", "Elevation (m)", "Calories"]
     st.dataframe(weekly, use_container_width=True)
 
-# --- Compare tab ---
+# ── Compare ───────────────────────────────────────────
+
 with tab_compare:
-    st.subheader("Compare Two Periods")
+    section_label("Compare Two Periods")
 
     min_date = df["start_time"].min().date()
     max_date = df["start_time"].max().date()
 
     col_a, col_b = st.columns(2)
     with col_a:
-        st.markdown("**Period A**")
-        a_start = st.date_input("Start", value=max_date - pd.Timedelta(days=60), min_value=min_date, max_value=max_date, key="a_start")
-        a_end = st.date_input("End", value=max_date - pd.Timedelta(days=30), min_value=min_date, max_value=max_date, key="a_end")
+        st.markdown(f'<div class="sec-label" style="font-size:0.7rem;">Period A</div>',
+                    unsafe_allow_html=True)
+        a_start = st.date_input("Start", value=max_date - pd.Timedelta(days=60),
+                                min_value=min_date, max_value=max_date, key="a_start")
+        a_end = st.date_input("End", value=max_date - pd.Timedelta(days=30),
+                              min_value=min_date, max_value=max_date, key="a_end")
     with col_b:
-        st.markdown("**Period B**")
-        b_start = st.date_input("Start", value=max_date - pd.Timedelta(days=30), min_value=min_date, max_value=max_date, key="b_start")
-        b_end = st.date_input("End", value=max_date, min_value=min_date, max_value=max_date, key="b_end")
+        st.markdown(f'<div class="sec-label" style="font-size:0.7rem;">Period B</div>',
+                    unsafe_allow_html=True)
+        b_start = st.date_input("Start", value=max_date - pd.Timedelta(days=30),
+                                min_value=min_date, max_value=max_date, key="b_start")
+        b_end = st.date_input("End", value=max_date,
+                              min_value=min_date, max_value=max_date, key="b_end")
 
     period_a = df[(df["start_time"].dt.date >= a_start) & (df["start_time"].dt.date <= a_end)]
     period_b = df[(df["start_time"].dt.date >= b_start) & (df["start_time"].dt.date <= b_end)]
@@ -202,8 +788,17 @@ with tab_compare:
         stats_a = period_stats(period_a)
         stats_b = period_stats(period_b)
 
-        st.divider()
-        st.caption(f"Period A: {a_start} to {a_end} ({len(period_a)} runs)  |  Period B: {b_start} to {b_end} ({len(period_b)} runs)")
+        # Tokyo Neo: radar chart
+        if theme == "Tokyo Neo":
+            st.plotly_chart(
+                neo_radar_chart(stats_a, stats_b,
+                                f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
+                use_container_width=True)
+
+        divider()
+
+        st.caption(f"Period A: {a_start} \u2192 {a_end} ({len(period_a)} runs)  \u00b7  "
+                   f"Period B: {b_start} \u2192 {b_end} ({len(period_b)} runs)")
 
         metrics = [
             ("Runs", "", 0, False),
@@ -217,7 +812,7 @@ with tab_compare:
 
         for i in range(0, len(metrics), 4):
             row = st.columns(min(4, len(metrics) - i))
-            for j, (label, unit, decimals, lower_is_better) in enumerate(metrics[i:i+4]):
+            for j, (label, unit, decimals, lower_is_better) in enumerate(metrics[i:i + 4]):
                 val_a = stats_a[label]
                 val_b = stats_b[label]
                 delta = val_b - val_a if pd.notna(val_a) and pd.notna(val_b) else None
