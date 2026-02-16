@@ -104,7 +104,7 @@ else:
 st.caption(f"Showing {len(filtered_df)} activities" + (f" from last {days} days" if days else ""))
 
 # --- Tabs ---
-tab_trends, tab_summary = st.tabs(["Trends", "Summary"])
+tab_trends, tab_summary, tab_compare = st.tabs(["Trends", "Summary", "Compare"])
 
 # --- Trends tab ---
 with tab_trends:
@@ -164,3 +164,70 @@ with tab_summary:
     weekly = weekly_summary(filtered_df)
     weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence", "Avg HR", "Elevation (m)", "Calories"]
     st.dataframe(weekly, use_container_width=True)
+
+# --- Compare tab ---
+with tab_compare:
+    st.subheader("Compare Two Periods")
+
+    min_date = df["start_time"].min().date()
+    max_date = df["start_time"].max().date()
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("**Period A**")
+        a_start = st.date_input("Start", value=max_date - pd.Timedelta(days=60), min_value=min_date, max_value=max_date, key="a_start")
+        a_end = st.date_input("End", value=max_date - pd.Timedelta(days=30), min_value=min_date, max_value=max_date, key="a_end")
+    with col_b:
+        st.markdown("**Period B**")
+        b_start = st.date_input("Start", value=max_date - pd.Timedelta(days=30), min_value=min_date, max_value=max_date, key="b_start")
+        b_end = st.date_input("End", value=max_date, min_value=min_date, max_value=max_date, key="b_end")
+
+    period_a = df[(df["start_time"].dt.date >= a_start) & (df["start_time"].dt.date <= a_end)]
+    period_b = df[(df["start_time"].dt.date >= b_start) & (df["start_time"].dt.date <= b_end)]
+
+    if period_a.empty or period_b.empty:
+        st.warning("One or both periods have no activities. Adjust the date ranges.")
+    else:
+        def period_stats(p):
+            return {
+                "Runs": len(p),
+                "Total km": p["distance_km"].sum(),
+                "Avg km/run": p["distance_km"].mean(),
+                "Avg Pace": p["pace_min_km"].mean(),
+                "Avg Cadence": p["cadence"].mean(),
+                "Total Elevation": p["elevation_gain"].sum(),
+                "Total Calories": p["calories"].sum(),
+            }
+
+        stats_a = period_stats(period_a)
+        stats_b = period_stats(period_b)
+
+        st.divider()
+        st.caption(f"Period A: {a_start} to {a_end} ({len(period_a)} runs)  |  Period B: {b_start} to {b_end} ({len(period_b)} runs)")
+
+        metrics = [
+            ("Runs", "", 0, False),
+            ("Total km", "km", 1, False),
+            ("Avg km/run", "km", 2, False),
+            ("Avg Pace", "min/km", 2, True),
+            ("Avg Cadence", "spm", 0, False),
+            ("Total Elevation", "m", 0, False),
+            ("Total Calories", "kcal", 0, False),
+        ]
+
+        for i in range(0, len(metrics), 4):
+            row = st.columns(min(4, len(metrics) - i))
+            for j, (label, unit, decimals, lower_is_better) in enumerate(metrics[i:i+4]):
+                val_a = stats_a[label]
+                val_b = stats_b[label]
+                delta = val_b - val_a if pd.notna(val_a) and pd.notna(val_b) else None
+
+                if decimals == 0:
+                    display_b = f"{val_b:.0f} {unit}".strip()
+                    delta_str = f"{delta:+.0f}" if delta is not None else None
+                else:
+                    display_b = f"{val_b:.{decimals}f} {unit}".strip()
+                    delta_str = f"{delta:+.{decimals}f}" if delta is not None else None
+
+                delta_inv = "inverse" if lower_is_better else "normal"
+                row[j].metric(label, display_b, delta=delta_str, delta_color=delta_inv)
