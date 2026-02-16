@@ -162,7 +162,7 @@ def save_laps(activity_id: int, lap_dtos: list[dict]):
                 lap.get("averageSpeed"),
                 lap.get("averageHR"),
                 lap.get("maxHR"),
-                lap.get("averageCadence"),
+                lap.get("averageRunCadence") or lap.get("averageCadence"),
                 lap.get("elevationGain"),
                 lap.get("elevationLoss"),
                 lap.get("calories", 0) or 0,
