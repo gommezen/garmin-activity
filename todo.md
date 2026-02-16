@@ -30,8 +30,13 @@
 - [x] Add data cleaning filter (removes GPS glitches, fragments, bad pace)
 - [x] Add time range selector to dashboard (1mo/3mo/6mo/1yr/all)
 
+- [x] Compare performance across date ranges (Compare tab in dashboard)
+
 ## Future Ideas
-- [ ] Compare performance across date ranges
+- [ ] Cannot save jupyter notebook as pdf
+[W 2026-02-16 03:11:25.940 ServerApp] 500 GET /nbconvert/pdf/notebooks/analysis.ipynb?download=true (::1): nbconvert failed: xelatex not found on PATH, if you have not installed xelatex you may need to do so. Find further instructions at https://nbconvert.readthedocs.io/en/latest/install.html#installing-tex.
+[E 2026-02-16 03:11:25.941 ServerApp] {
+    
 - [ ] Auto-download .fit files for deeper analysis
 - [ ] Schedule automatic pulls (daily/weekly cron job)
 - [ ] Add support for pulling multiple sport types at once
