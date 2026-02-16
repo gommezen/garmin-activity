@@ -43,33 +43,47 @@ def monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
+def _fmt_pace(pace: float) -> str:
+    """Format pace as M:SS min/km."""
+    return f"{int(pace)}:{int((pace % 1) * 60):02d} min/km"
+
+
 def personal_records(df: pd.DataFrame) -> dict:
-    """Find personal records across all activities."""
+    """Find personal records across all activities.
+
+    Returns fastest 1K, fastest 5K, and longest run.
+    """
     records = {}
+    if df.empty:
+        return records
 
-    if not df.empty:
-        fastest = df.loc[df["pace_min_km"].idxmin()]
-        records["fastest_pace"] = {
-            "value": f"{int(fastest['pace_min_km'])}:{int((fastest['pace_min_km'] % 1) * 60):02d} min/km",
-            "date": fastest["start_time"].strftime("%b %d, %Y"),
-            "distance": f"{fastest['distance_km']:.1f} km",
+    # Fastest 1K — best average pace among runs >= 1 km
+    candidates_1k = df[df["distance_km"] >= 1.0]
+    if not candidates_1k.empty:
+        best = candidates_1k.loc[candidates_1k["pace_min_km"].idxmin()]
+        records["fastest_1k"] = {
+            "value": _fmt_pace(best["pace_min_km"]),
+            "date": best["start_time"].strftime("%b %d, %Y"),
+            "detail": f"{best['distance_km']:.1f} km · {best['name']}",
         }
 
-        longest = df.loc[df["distance_km"].idxmax()]
-        records["longest_run"] = {
-            "value": f"{longest['distance_km']:.2f} km",
-            "date": longest["start_time"].strftime("%b %d, %Y"),
-            "pace": f"{int(longest['pace_min_km'])}:{int((longest['pace_min_km'] % 1) * 60):02d} min/km",
+    # Fastest 5K — best average pace among runs >= 5 km
+    candidates_5k = df[df["distance_km"] >= 5.0]
+    if not candidates_5k.empty:
+        best = candidates_5k.loc[candidates_5k["pace_min_km"].idxmin()]
+        records["fastest_5k"] = {
+            "value": _fmt_pace(best["pace_min_km"]),
+            "date": best["start_time"].strftime("%b %d, %Y"),
+            "detail": f"{best['distance_km']:.1f} km · {best['name']}",
         }
 
-        elev = df.dropna(subset=["elevation_gain"])
-        if not elev.empty:
-            most_elev = elev.loc[elev["elevation_gain"].idxmax()]
-            records["most_elevation"] = {
-                "value": f"+{most_elev['elevation_gain']:.0f} m",
-                "date": most_elev["start_time"].strftime("%b %d, %Y"),
-                "distance": f"{most_elev['distance_km']:.1f} km",
-            }
+    # Longest run
+    longest = df.loc[df["distance_km"].idxmax()]
+    records["longest_run"] = {
+        "value": f"{longest['distance_km']:.2f} km",
+        "date": longest["start_time"].strftime("%b %d, %Y"),
+        "detail": _fmt_pace(longest["pace_min_km"]),
+    }
 
     return records
 
@@ -85,15 +99,15 @@ def print_summary_stats(df: pd.DataFrame):
     print(f"\n{'='*60}")
     print(" Personal Records")
     print(f"{'='*60}")
-    if "fastest_pace" in prs:
-        pr = prs["fastest_pace"]
-        print(f"  Fastest Pace:    {pr['value']}  ({pr['distance']} on {pr['date']})")
+    if "fastest_1k" in prs:
+        pr = prs["fastest_1k"]
+        print(f"  Fastest 1K:      {pr['value']}  ({pr['detail']} on {pr['date']})")
+    if "fastest_5k" in prs:
+        pr = prs["fastest_5k"]
+        print(f"  Fastest 5K:      {pr['value']}  ({pr['detail']} on {pr['date']})")
     if "longest_run" in prs:
         pr = prs["longest_run"]
-        print(f"  Longest Run:     {pr['value']}  ({pr['pace']} on {pr['date']})")
-    if "most_elevation" in prs:
-        pr = prs["most_elevation"]
-        print(f"  Most Elevation:  {pr['value']}  ({pr['distance']} on {pr['date']})")
+        print(f"  Longest Run:     {pr['value']}  ({pr['detail']} on {pr['date']})")
 
     # Monthly summary
     monthly = monthly_summary(df)

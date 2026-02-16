@@ -1215,6 +1215,33 @@ with tab_trends:
         with col2:
             st.plotly_chart(make_chart(filtered_df, "start_time", "pace_min_km",
                                        "Pace", "min/km", CC["pace"]), use_container_width=True)
+
+        # Weekly mileage bar chart
+        weekly_km = (filtered_df.set_index("start_time")
+                     .resample("W-MON")["distance_km"].sum()
+                     .reset_index())
+        weekly_km.columns = ["week", "km"]
+
+        fig_wk = go.Figure()
+        # 4-week rolling average
+        rolling_4w = weekly_km["km"].rolling(4, min_periods=1).mean()
+        fig_wk.add_trace(go.Bar(
+            x=weekly_km["week"], y=weekly_km["km"], name="Weekly km",
+            marker=dict(color=CC["dist"], opacity=0.7, line=dict(color=BG, width=0.5)),
+            hovertemplate="%{x|%b %d, %Y}<br><b>%{y:.1f} km</b><extra></extra>",
+        ))
+        fig_wk.add_trace(go.Scatter(
+            x=weekly_km["week"], y=rolling_4w, name="4-week avg",
+            mode="lines", line=dict(color=CC["pace"], width=2.5),
+            hovertemplate="%{x|%b %d, %Y}<br><b>%{y:.1f} km</b><extra></extra>",
+        ))
+        layout_wk = _layout("Weekly mileage", "km")
+        layout_wk["legend"] = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+                                   font=dict(color=DIM, family=FONT_H, size=10))
+        layout_wk["height"] = 380
+        fig_wk.update_layout(**layout_wk)
+        st.plotly_chart(fig_wk, use_container_width=True)
+
     with t2:
         st.plotly_chart(make_dual_chart(filtered_df, "start_time", "avg_hr", "max_hr",
                                         "Heart Rate", "Avg HR", "Max HR", "bpm",
@@ -1239,41 +1266,109 @@ with tab_trends:
 # ── Summary ───────────────────────────────────────────
 
 with tab_summary:
-    prs = personal_records(filtered_df)
+    # ── Personal Records (all-time, ignores time filter) ──
+    prs = personal_records(df)
     section_label("Personal Records")
 
+    pr_items = [
+        ("Fastest 1K", prs.get("fastest_1k")),
+        ("Fastest 5K", prs.get("fastest_5k")),
+        ("Longest Run", prs.get("longest_run")),
+    ]
     pr_html = '<div class="pr-grid">'
-    if "fastest_pace" in prs:
-        pr = prs["fastest_pace"]
-        pr_html += (f'<div class="pr-card"><div class="pr-label">Fastest Pace</div>'
-                    f'<div class="pr-val">{pr["value"]}</div>'
-                    f'<div class="pr-detail">{pr["distance"]} \u00b7 {pr["date"]}</div></div>')
-    if "longest_run" in prs:
-        pr = prs["longest_run"]
-        pr_html += (f'<div class="pr-card"><div class="pr-label">Longest Run</div>'
-                    f'<div class="pr-val">{pr["value"]}</div>'
-                    f'<div class="pr-detail">{pr["pace"]} \u00b7 {pr["date"]}</div></div>')
-    if "most_elevation" in prs:
-        pr = prs["most_elevation"]
-        pr_html += (f'<div class="pr-card"><div class="pr-label">Most Elevation</div>'
-                    f'<div class="pr-val">{pr["value"]}</div>'
-                    f'<div class="pr-detail">{pr["distance"]} \u00b7 {pr["date"]}</div></div>')
+    for pr_label, pr in pr_items:
+        if pr:
+            pr_html += (f'<div class="pr-card"><div class="pr-label">{pr_label}</div>'
+                        f'<div class="pr-val">{pr["value"]}</div>'
+                        f'<div class="pr-detail">{pr["detail"]} \u00b7 {pr["date"]}</div></div>')
     pr_html += '</div>'
     st.markdown(pr_html, unsafe_allow_html=True)
 
     divider()
 
+    # ── Monthly Summary with picker ──
     section_label("Monthly Summary")
-    monthly = monthly_summary(filtered_df)
+
+    monthly = monthly_summary(df)
     monthly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
                         "Avg HR", "Elevation (m)", "Calories"]
-    st.dataframe(monthly, use_container_width=True)
+    month_options = monthly.index.tolist()
 
+    _ml, _mr = st.columns([1, 4])
+    with _ml:
+        selected_month = st.selectbox("Month", month_options, index=len(month_options) - 1,
+                                       key="month_pick", label_visibility="collapsed")
+
+    m = monthly.loc[selected_month]
+    m_pace = m["Avg Pace"]
+    m_pace_str = f"{int(m_pace)}:{int((m_pace % 1) * 60):02d}" if pd.notna(m_pace) else "—"
+    m_cards = [
+        ("Runs", f"{int(m['Runs'])}", ""),
+        ("Distance", f"{m['Total km']:.1f}", "km"),
+        ("Time", f"{m['Total min']:.0f}", "min"),
+        ("Avg Pace", m_pace_str, "min/km"),
+    ]
+    m_cards2 = []
+    if pd.notna(m["Avg HR"]):
+        m_cards2.append(("Avg HR", f"{m['Avg HR']:.0f}", "bpm"))
+    if pd.notna(m["Avg Cadence"]):
+        m_cards2.append(("Cadence", f"{m['Avg Cadence']:.0f}", "spm"))
+    if pd.notna(m["Elevation (m)"]):
+        m_cards2.append(("Elevation", f"+{m['Elevation (m)']:.0f}", "m"))
+    if pd.notna(m["Calories"]):
+        m_cards2.append(("Calories", f"{m['Calories']:.0f}", "kcal"))
+
+    for card_row in [m_cards, m_cards2]:
+        if card_row:
+            html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(card_row)}, 1fr);">'
+            for label, val, unit in card_row:
+                html += (f'<div class="m-card"><div class="m-label">{label}</div>'
+                         f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
+            html += '</div>'
+            st.markdown(html, unsafe_allow_html=True)
+
+    divider()
+
+    # ── Weekly Summary with picker ──
     section_label("Weekly Summary")
-    weekly = weekly_summary(filtered_df)
+
+    weekly = weekly_summary(df)
     weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
                        "Avg HR", "Elevation (m)", "Calories"]
-    st.dataframe(weekly, use_container_width=True)
+    week_options = weekly.index.tolist()
+
+    _wl, _wr = st.columns([1, 4])
+    with _wl:
+        selected_week = st.selectbox("Week", week_options, index=len(week_options) - 1,
+                                      key="week_pick", label_visibility="collapsed")
+
+    w = weekly.loc[selected_week]
+    w_pace = w["Avg Pace"]
+    w_pace_str = f"{int(w_pace)}:{int((w_pace % 1) * 60):02d}" if pd.notna(w_pace) else "—"
+    w_cards = [
+        ("Runs", f"{int(w['Runs'])}", ""),
+        ("Distance", f"{w['Total km']:.1f}", "km"),
+        ("Time", f"{w['Total min']:.0f}", "min"),
+        ("Avg Pace", w_pace_str, "min/km"),
+    ]
+    w_cards2 = []
+    if pd.notna(w["Avg HR"]):
+        w_cards2.append(("Avg HR", f"{w['Avg HR']:.0f}", "bpm"))
+    if pd.notna(w["Avg Cadence"]):
+        w_cards2.append(("Cadence", f"{w['Avg Cadence']:.0f}", "spm"))
+    if pd.notna(w["Elevation (m)"]):
+        w_cards2.append(("Elevation", f"+{w['Elevation (m)']:.0f}", "m"))
+    if pd.notna(w["Calories"]):
+        w_cards2.append(("Calories", f"{w['Calories']:.0f}", "kcal"))
+
+    for card_row in [w_cards, w_cards2]:
+        if card_row:
+            html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(card_row)}, 1fr);">'
+            for label, val, unit in card_row:
+                html += (f'<div class="m-card"><div class="m-label">{label}</div>'
+                         f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
+            html += '</div>'
+            st.markdown(html, unsafe_allow_html=True)
 
 # ── Compare ───────────────────────────────────────────
 
