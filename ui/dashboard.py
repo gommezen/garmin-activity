@@ -15,11 +15,11 @@ st.set_page_config(page_title="Garmin Running", page_icon="\u25c6", layout="wide
 
 # ── Preload all fonts ─────────────────────────────────
 st.markdown("""<style>
-@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Josefin+Sans:wght@300;400;600&family=Michroma&family=Outfit:wght@300;400;500&family=Poiret+One&family=Sora:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Josefin+Sans:wght@300;400;600&family=Michroma&family=Outfit:wght@300;400;500&family=Orbitron:wght@400;500;600;700&family=Poiret+One&family=Rajdhani:wght@300;400;500;600&family=Sora:wght@300;400;500;600&display=swap');
 </style>""", unsafe_allow_html=True)
 
 # ── Theme Selector ────────────────────────────────────
-theme = st.radio("Theme", ["Art Deco", "Tokyo Neo"], horizontal=True)
+theme = st.radio("Theme", ["Art Deco", "Tokyo Neo", "Blade Runner 2049"], horizontal=True)
 
 # ── Theme Configuration ───────────────────────────────
 if theme == "Art Deco":
@@ -34,7 +34,7 @@ if theme == "Art Deco":
         "dist": "#00c9a7", "pace": "#c9a84c", "hr1": "#c25a6e", "hr2": "#e05577",
         "dur": "#4ecdc4", "cal": "#8b7355", "cad": "#5a8c72", "elev": "#8b7355",
     }
-else:
+elif theme == "Tokyo Neo":
     PRIMARY, SECONDARY = "#00f0ff", "#ff2d78"
     TXT, DIM, MUTED = "#e6edf3", "#8b949e", "#484f58"
     SURFACE, BG, BORDER = "#161b22", "#0d1117", "#21262d"
@@ -46,8 +46,20 @@ else:
         "dist": "#00f0ff", "pace": "#ff2d78", "hr1": "#7c3aed", "hr2": "#a855f7",
         "dur": "#00ff88", "cal": "#ffb800", "cad": "#06b6d4", "elev": "#f97316",
     }
+else:  # Blade Runner 2049
+    PRIMARY, SECONDARY = "#e0943a", "#4a8fa5"
+    TXT, DIM, MUTED = "#d8c9a3", "#8a7d68", "#554f44"
+    SURFACE, BG, BORDER = "#191714", "#0f0e0c", "#2c2722"
+    PLOT_BG = "rgba(25,23,20,0.25)"
+    GRID = "rgba(44,39,34,0.4)"
+    FONT_H, FONT_B = "Orbitron, sans-serif", "Rajdhani, sans-serif"
+    MARKER = "x"
+    CC = {
+        "dist": "#e0943a", "pace": "#4a8fa5", "hr1": "#c45c3e", "hr2": "#d47a5a",
+        "dur": "#6b9fa8", "cal": "#b87333", "cad": "#5a8fa0", "elev": "#8b6b4a",
+    }
 
-RADIUS = "0" if theme == "Art Deco" else "8px"
+RADIUS = {"Art Deco": "0", "Tokyo Neo": "8px", "Blade Runner 2049": "2px"}[theme]
 
 # ╔══════════════════════════════════════════════════════╗
 # ║                  ART DECO CSS                        ║
@@ -368,9 +380,254 @@ hr { border-color: #21262d !important; }
 }
 """
 
+# ╔══════════════════════════════════════════════════════╗
+# ║               BLADE RUNNER 2049 CSS                  ║
+# ╚══════════════════════════════════════════════════════╝
+
+BLADE_RUNNER_CSS = """
+/* ═══ GLOBAL ═══ */
+.stApp {
+    background: linear-gradient(160deg, #0f0e0c 0%, #131110 40%, #110f0d 70%, #0f0e0c 100%);
+    font-family: 'Rajdhani', sans-serif;
+}
+section[data-testid="stSidebar"] { display: none; }
+header[data-testid="stHeader"] { background: transparent; }
+.block-container { max-width: 1200px; padding-top: 0.5rem; }
+
+h1, h2, h3 {
+    font-family: 'Orbitron', sans-serif !important;
+    font-weight: 400 !important; letter-spacing: 3px !important; color: #d8c9a3 !important;
+}
+
+/* ═══ METRICS ═══ */
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, #191714 0%, #1d1a16 100%);
+    border: 1px solid #2c2722; border-top: 2px solid #e0943a;
+    padding: 1rem 0.8rem; border-radius: 2px;
+    transition: all 0.4s ease;
+}
+[data-testid="stMetric"]:hover {
+    border-color: rgba(224, 148, 58, 0.2);
+    border-top-color: #e0943a;
+    box-shadow: 0 0 25px rgba(224, 148, 58, 0.08), 0 4px 15px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+[data-testid="stMetricLabel"] {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
+    letter-spacing: 2px !important; text-transform: uppercase !important;
+    font-size: 0.65rem !important; color: #8a7d68 !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Rajdhani', sans-serif !important; font-weight: 500 !important;
+    color: #e0943a !important; font-size: 1.4rem !important;
+    text-shadow: 0 0 12px rgba(224, 148, 58, 0.15);
+}
+[data-testid="stMetricDelta"] { font-family: 'Rajdhani', sans-serif !important; font-size: 0.8rem !important; }
+
+/* ═══ TABS ═══ */
+.stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #2c2722; background: transparent; }
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
+    letter-spacing: 2px !important; text-transform: uppercase !important;
+    font-size: 0.72rem !important; color: #554f44 !important;
+    padding: 0.8rem 1.5rem !important; background: transparent !important;
+    transition: color 0.3s ease;
+}
+.stTabs [data-baseweb="tab"]:hover { color: #8a7d68 !important; }
+.stTabs [aria-selected="true"] { color: #e0943a !important; text-shadow: 0 0 10px rgba(224, 148, 58, 0.2); }
+.stTabs [data-baseweb="tab-highlight"] { background-color: #e0943a !important; box-shadow: 0 0 8px rgba(224, 148, 58, 0.2); }
+.stTabs [data-baseweb="tab-border"] { background-color: #2c2722 !important; }
+
+div[data-testid="stRadio"] label {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
+    letter-spacing: 1px !important; font-size: 0.7rem !important;
+}
+.stDateInput input {
+    background-color: #191714 !important; border: 1px solid #2c2722 !important;
+    color: #d8c9a3 !important; border-radius: 2px !important;
+}
+hr { border-color: #2c272240 !important; }
+[data-testid="stCaptionContainer"] {
+    font-family: 'Rajdhani', sans-serif !important; color: #554f44 !important; letter-spacing: 1px !important;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0f0e0c; }
+::-webkit-scrollbar-thumb { background: #2c2722; border-radius: 1px; }
+
+/* ═══ BLADE RUNNER HEADER ═══ */
+.br-header { text-align: center; padding: 1.5rem 0 0.5rem; position: relative; }
+.br-scanline {
+    height: 1px; max-width: 350px; margin: 0 auto;
+    background: linear-gradient(90deg, transparent, #e0943a60, #e0943a, #e0943a60, transparent);
+}
+.br-scanline.dim { opacity: 0.3; max-width: 250px; margin-top: 3px; }
+.br-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 2rem;
+    color: #e0943a; letter-spacing: 12px; margin: 0.6rem 0 0.1rem;
+    text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(224, 148, 58, 0.2), 0 0 60px rgba(224, 148, 58, 0.05);
+}
+.br-title .br-accent { color: #4a8fa5; text-shadow: 0 0 20px rgba(74, 143, 165, 0.2); }
+.br-subtitle {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; font-size: 0.6rem;
+    color: #554f44; letter-spacing: 6px; text-transform: uppercase;
+}
+.br-subtitle .br-bracket { color: #8a7d68; }
+.br-meta {
+    font-family: 'Rajdhani', sans-serif; font-weight: 400; font-size: 0.75rem;
+    color: #554f44; letter-spacing: 2px; margin-top: 0.4rem;
+}
+
+/* ═══ BLADE RUNNER DIVIDER ═══ */
+.br-divider { display: flex; align-items: center; justify-content: center; margin: 1.2rem 0; gap: 12px; }
+.br-div-line { flex: 1; max-width: 140px; height: 1px; }
+.br-div-line.l { background: linear-gradient(to right, transparent, #e0943a40); }
+.br-div-line.r { background: linear-gradient(to left, transparent, #e0943a40); }
+.br-div-dot { width: 4px; height: 4px; background: #e0943a; opacity: 0.6; }
+
+/* ═══ METRIC GRID (BR) ═══ */
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.m-card {
+    background: linear-gradient(145deg, #191714 0%, #1d1a16 100%);
+    border: 1px solid #2c2722; border-top: 2px solid #e0943a;
+    padding: 1rem 0.6rem; text-align: center; border-radius: 2px;
+    transition: all 0.4s ease; position: relative; overflow: hidden;
+}
+.m-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(224, 148, 58, 0.008) 3px, rgba(224, 148, 58, 0.008) 4px
+    );
+    pointer-events: none;
+}
+.m-card::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(224, 148, 58, 0.03) 0%, transparent 60%);
+    pointer-events: none; transition: opacity 0.4s ease;
+}
+.m-card:hover {
+    border-color: rgba(224, 148, 58, 0.25);
+    border-top-color: #e0943a;
+    box-shadow: 0 0 25px rgba(224, 148, 58, 0.06), 0 4px 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+.m-card:hover::after { background: linear-gradient(135deg, rgba(224, 148, 58, 0.06) 0%, transparent 60%); }
+.m-card .m-label {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; letter-spacing: 2px;
+    font-size: 0.55rem; color: #8a7d68; text-transform: uppercase; margin-bottom: 0.4rem;
+}
+.m-card .m-val {
+    font-family: 'Rajdhani', sans-serif; font-weight: 500; font-size: 1.4rem;
+    color: #e0943a; text-shadow: 0 0 10px rgba(224, 148, 58, 0.15);
+    transition: text-shadow 0.4s ease;
+}
+.m-card:hover .m-val { text-shadow: 0 0 20px rgba(224, 148, 58, 0.3); }
+.m-card .m-unit { font-family: 'Rajdhani', sans-serif; font-weight: 300; font-size: 0.7rem; color: #554f44; margin-left: 2px; }
+
+/* ═══ PR CARDS (BR) ═══ */
+.pr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin: 0.8rem 0; }
+.pr-card {
+    background: linear-gradient(145deg, #191714, #1d1a16); border: 1px solid #2c2722;
+    border-left: 3px solid #4a8fa5; padding: 1rem; border-radius: 2px;
+    transition: all 0.4s ease; position: relative; overflow: hidden;
+}
+.pr-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(74, 143, 165, 0.008) 3px, rgba(74, 143, 165, 0.008) 4px
+    );
+    pointer-events: none;
+}
+.pr-card:hover {
+    border-color: rgba(74, 143, 165, 0.25);
+    border-left-color: #4a8fa5;
+    box-shadow: -3px 0 20px rgba(74, 143, 165, 0.06), 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: translateX(3px);
+}
+.pr-card .pr-label {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; letter-spacing: 2px;
+    font-size: 0.55rem; color: #8a7d68; text-transform: uppercase; margin-bottom: 0.3rem;
+}
+.pr-card .pr-val {
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1.3rem;
+    color: #4a8fa5; text-shadow: 0 0 8px rgba(74, 143, 165, 0.15);
+}
+.pr-card .pr-detail { font-family: 'Rajdhani', sans-serif; font-weight: 300; font-size: 0.72rem; color: #554f44; margin-top: 0.2rem; }
+
+/* ═══ SECTION LABEL (BR) ═══ */
+.sec-label {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; letter-spacing: 3px;
+    font-size: 0.75rem; color: #d8c9a3; text-transform: uppercase;
+    display: flex; align-items: center; gap: 12px; margin: 1rem 0 0.5rem;
+}
+.sec-label .sec-line { flex: 1; height: 1px; background: linear-gradient(to right, #2c272280, transparent); }
+.latest-date {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; letter-spacing: 3px;
+    font-size: 0.75rem; color: #8a7d68; text-transform: uppercase; margin-bottom: 0.3rem;
+}
+
+/* ═══ VISUAL BOARD (BR) ═══ */
+.br-board {
+    margin: 1rem 0; padding: 1.2rem; position: relative; overflow: hidden;
+    background: linear-gradient(145deg, #191714 0%, #1a1815 100%);
+    border: 1px solid #2c2722; border-radius: 2px;
+}
+.br-board::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(224, 148, 58, 0.01) 2px, rgba(224, 148, 58, 0.01) 4px
+    );
+    pointer-events: none;
+}
+.br-board-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 400; font-size: 0.55rem;
+    color: #554f44; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 0.8rem;
+}
+.br-board .board-row { display: flex; align-items: center; margin: 0.7rem 0; gap: 12px; }
+.br-board .board-label {
+    width: 75px; font-family: 'Orbitron', sans-serif; font-weight: 400;
+    font-size: 0.55rem; color: #8a7d68; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0;
+}
+.br-board .board-bar-wrap { flex: 1; height: 20px; background: #131110; border-radius: 1px; position: relative; overflow: visible; }
+.br-board .board-bar {
+    height: 100%; border-radius: 1px; transform-origin: left;
+    animation: br-bar-grow 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    position: relative;
+}
+.br-board .board-bar.amber { background: linear-gradient(90deg, #e0943a, rgba(224, 148, 58, 0.5)); box-shadow: 0 0 10px rgba(224, 148, 58, 0.1); }
+.br-board .board-bar.steel { background: linear-gradient(90deg, #4a8fa5, rgba(74, 143, 165, 0.5)); box-shadow: 0 0 10px rgba(74, 143, 165, 0.1); }
+.br-board .board-bar.copper { background: linear-gradient(90deg, #b87333, rgba(184, 115, 51, 0.5)); box-shadow: 0 0 10px rgba(184, 115, 51, 0.1); }
+.br-board .board-bar.terra { background: linear-gradient(90deg, #c45c3e, rgba(196, 92, 62, 0.5)); box-shadow: 0 0 10px rgba(196, 92, 62, 0.1); }
+@keyframes br-bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.br-board .board-avg {
+    position: absolute; top: -4px; width: 2px; height: calc(100% + 8px);
+    background: #4a8fa5; box-shadow: 0 0 6px rgba(74, 143, 165, 0.4); z-index: 2;
+}
+.br-board .board-avg span {
+    position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif; font-size: 0.4rem; font-weight: 400;
+    color: #4a8fa5; letter-spacing: 2px;
+}
+.br-board .board-val {
+    width: 80px; text-align: right; font-family: 'Rajdhani', sans-serif;
+    font-weight: 500; font-size: 0.95rem; color: #e0943a; flex-shrink: 0;
+}
+.br-board .board-unit { font-weight: 300; font-size: 0.65rem; color: #554f44; margin-left: 2px; }
+
+@media (max-width: 768px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .pr-grid { grid-template-columns: 1fr; }
+    .br-title { font-size: 1.4rem; letter-spacing: 6px; }
+}
+"""
+
 # ── Inject Theme CSS ──────────────────────────────────
-st.markdown(f"<style>{ART_DECO_CSS if theme == 'Art Deco' else TOKYO_NEO_CSS}</style>",
-            unsafe_allow_html=True)
+_theme_css = {"Art Deco": ART_DECO_CSS, "Tokyo Neo": TOKYO_NEO_CSS, "Blade Runner 2049": BLADE_RUNNER_CSS}
+st.markdown(f"<style>{_theme_css[theme]}</style>", unsafe_allow_html=True)
 
 
 # ── Helpers ───────────────────────────────────────────
@@ -381,22 +638,31 @@ def divider():
             <div class="deco-div-line l"></div><span class="deco-diamond sm"></span>
             <span class="deco-diamond gold lg"></span><span class="deco-diamond sm"></span>
             <div class="deco-div-line r"></div></div>""", unsafe_allow_html=True)
-    else:
+    elif theme == "Tokyo Neo":
         st.markdown("""<div class="neo-divider">
             <div class="neo-div-line l"></div>
             <span class="neo-dot" style="width:4px;height:4px;animation-duration:3s;"></span>
             <span class="neo-dot" style="width:5px;height:5px;"></span>
             <span class="neo-dot" style="width:4px;height:4px;animation-duration:3s;animation-delay:0.5s;"></span>
             <div class="neo-div-line r"></div></div>""", unsafe_allow_html=True)
+    else:
+        st.markdown("""<div class="br-divider">
+            <div class="br-div-line l"></div>
+            <div class="br-div-dot"></div>
+            <div class="br-div-line r"></div></div>""", unsafe_allow_html=True)
 
 
 def section_label(text):
     if theme == "Art Deco":
         st.markdown(f'<div class="sec-label"><span class="deco-diamond sm gold"></span>'
                     f'{text}<div class="sec-line"></div></div>', unsafe_allow_html=True)
-    else:
+    elif theme == "Tokyo Neo":
         st.markdown(f'<div class="sec-label"><span style="width:4px;height:4px;background:#ff2d78;'
                     f'border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(255,45,120,0.4);"></span>'
+                    f'{text}<div class="sec-line"></div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="sec-label"><span style="width:4px;height:4px;background:#e0943a;'
+                    f'display:inline-block;box-shadow:0 0 6px rgba(224,148,58,0.3);"></span>'
                     f'{text}<div class="sec-line"></div></div>', unsafe_allow_html=True)
 
 
@@ -494,6 +760,105 @@ def neo_visual_board(latest, df):
     st.markdown(html, unsafe_allow_html=True)
 
 
+def br_visual_board(latest, df):
+    """Animated bar chart — Blade Runner 2049 dusty/industrial style."""
+    bars = []
+    colors = ["amber", "steel", "copper", "terra"]
+
+    max_d = df["distance_km"].max()
+    avg_d = df["distance_km"].mean()
+    if max_d > 0:
+        bars.append(("Distance", f"{latest['distance_km']:.1f}", "km",
+                      latest["distance_km"] / max_d * 100, avg_d / max_d * 100, colors[0]))
+
+    min_p, max_p = df["pace_min_km"].min(), df["pace_min_km"].max()
+    rng = max_p - min_p if max_p > min_p else 1
+    avg_p = df["pace_min_km"].mean()
+    pm, ps = int(latest["pace_min_km"]), int((latest["pace_min_km"] % 1) * 60)
+    bars.append(("Pace", f"{pm}:{ps:02d}", "/km",
+                  max((max_p - latest["pace_min_km"]) / rng * 100, 3),
+                  max((max_p - avg_p) / rng * 100, 3), colors[1]))
+
+    max_dur = df["duration_min"].max()
+    avg_dur = df["duration_min"].mean()
+    if max_dur > 0:
+        bars.append(("Duration", f"{int(latest['duration_min'])}", "min",
+                      latest["duration_min"] / max_dur * 100, avg_dur / max_dur * 100, colors[2]))
+
+    if pd.notna(latest["cadence"]):
+        max_c = df["cadence"].dropna().max()
+        avg_c = df["cadence"].dropna().mean()
+        if max_c > 0:
+            bars.append(("Cadence", f"{latest['cadence']:.0f}", "spm",
+                          latest["cadence"] / max_c * 100, avg_c / max_c * 100, colors[3]))
+
+    html = '<div class="br-board"><div class="br-board-title">Latest // Run Data</div>'
+    for label, val, unit, pct, avg_pct, clr in bars:
+        html += f'''<div class="board-row">
+            <div class="board-label">{label}</div>
+            <div class="board-bar-wrap">
+                <div class="board-bar {clr}" style="width: {pct}%;"></div>
+                <div class="board-avg" style="left: {avg_pct}%;"><span>AVG</span></div>
+            </div>
+            <div class="board-val">{val}<span class="board-unit">{unit}</span></div>
+        </div>'''
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def br_radar_chart(stats_a, stats_b, label_a, label_b):
+    """Radar chart — Blade Runner 2049 amber/steel palette."""
+    categories = ["Distance", "Runs", "Speed", "Cadence", "Elevation", "Calories"]
+
+    def get_vals(s):
+        pace = s["Avg Pace"]
+        return [
+            s["Total km"], s["Runs"],
+            1 / pace if pd.notna(pace) and pace > 0 else 0,
+            s.get("Avg Cadence", 0) or 0,
+            s["Total Elevation"] or 0, s["Total Calories"] or 0,
+        ]
+
+    raw_a, raw_b = get_vals(stats_a), get_vals(stats_b)
+    norm_a, norm_b = [], []
+    for va, vb in zip(raw_a, raw_b):
+        mx = max(abs(va), abs(vb))
+        if mx > 0:
+            norm_a.append(va / mx * 100)
+            norm_b.append(vb / mx * 100)
+        else:
+            norm_a.append(50)
+            norm_b.append(50)
+
+    fig = go.Figure()
+    for vals, name, color, fill in [
+        (norm_a, label_a, "#e0943a", "rgba(224,148,58,0.08)"),
+        (norm_b, label_b, "#4a8fa5", "rgba(74,143,165,0.08)"),
+    ]:
+        fig.add_trace(go.Scatterpolar(
+            r=vals + [vals[0]], theta=categories + [categories[0]],
+            fill="toself", name=name,
+            line=dict(color=color, width=2), fillcolor=fill,
+            marker=dict(size=5),
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(visible=True, range=[0, 105], gridcolor="#2c2722",
+                            linecolor="#2c2722", tickfont=dict(size=8, color="#554f44")),
+            angularaxis=dict(gridcolor="#2c2722", linecolor="#2c2722",
+                             tickfont=dict(size=11, color="#8a7d68", family="Orbitron, sans-serif")),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Rajdhani, sans-serif", color="#8a7d68"),
+        legend=dict(font=dict(color="#8a7d68", family="Orbitron, sans-serif", size=11),
+                    orientation="h", yanchor="bottom", y=-0.15, x=0.5, xanchor="center"),
+        height=400, margin=dict(l=60, r=60, t=30, b=50),
+    )
+    return fig
+
+
 def neo_radar_chart(stats_a, stats_b, label_a, label_b):
     """Radar chart comparing two periods (Tokyo Neo only)."""
     categories = ["Distance", "Runs", "Speed", "Cadence", "Elevation", "Calories"]
@@ -583,7 +948,7 @@ if theme == "Art Deco":
         <span class="deco-diamond sm"></span></div>
         <div class="deco-meta">{activity_count:,} activities \u00b7 {year_range}</div>
     </div>""", unsafe_allow_html=True)
-else:
+elif theme == "Tokyo Neo":
     st.markdown(f"""<div class="neo-header">
         <div class="neo-header-line"></div>
         <div class="neo-dots"><span class="neo-dot"></span>
@@ -596,6 +961,16 @@ else:
         <span class="neo-dot" style="animation-delay:0.3s;"></span></div>
         <div class="neo-header-line"></div>
         <div class="neo-meta">{activity_count:,} activities \u00b7 {year_range}</div>
+    </div>""", unsafe_allow_html=True)
+else:
+    st.markdown(f"""<div class="br-header">
+        <div class="br-scanline"></div>
+        <div class="br-scanline dim"></div>
+        <div class="br-title">GARMIN <span class="br-accent">RUNNING</span></div>
+        <div class="br-subtitle"><span class="br-bracket">[</span> performance dashboard <span class="br-bracket">]</span></div>
+        <div class="br-scanline dim"></div>
+        <div class="br-scanline"></div>
+        <div class="br-meta">{activity_count:,} activities \u00b7 {year_range}</div>
     </div>""", unsafe_allow_html=True)
 
 if df.empty:
@@ -645,9 +1020,11 @@ if row2:
     html2 += '</div>'
     st.markdown(html2, unsafe_allow_html=True)
 
-# Tokyo Neo: visual board comparing latest run to averages
+# Visual board comparing latest run to averages
 if theme == "Tokyo Neo":
     neo_visual_board(latest, df)
+elif theme == "Blade Runner 2049":
+    br_visual_board(latest, df)
 
 divider()
 
@@ -788,11 +1165,16 @@ with tab_compare:
         stats_a = period_stats(period_a)
         stats_b = period_stats(period_b)
 
-        # Tokyo Neo: radar chart
+        # Radar chart
         if theme == "Tokyo Neo":
             st.plotly_chart(
                 neo_radar_chart(stats_a, stats_b,
                                 f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
+                use_container_width=True)
+        elif theme == "Blade Runner 2049":
+            st.plotly_chart(
+                br_radar_chart(stats_a, stats_b,
+                               f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
                 use_container_width=True)
 
         divider()
