@@ -1,6 +1,33 @@
 # Garmin Activity Puller
 
-A Python CLI that pulls your running activities from Garmin Connect, stores them in SQLite, and visualizes trends via a Streamlit dashboard or Jupyter notebook.
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
+[![Plotly](https://img.shields.io/badge/Plotly-Charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com)
+[![SQLite](https://img.shields.io/badge/SQLite-Storage-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
+[![Garmin](https://img.shields.io/badge/Garmin-Connect-007CC3?logo=garmin&logoColor=white)](https://connect.garmin.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+A Python CLI that pulls your running activities from Garmin Connect, stores them in SQLite, and visualizes trends via a Streamlit dashboard or Jupyter notebook. Features multi-theme UI with Art Deco and Tokyo Neo aesthetics, period comparison, personal records, and animated visual boards.
+
+## Screenshots
+
+### Tokyo Neo Theme
+<p align="center">
+  <img src="docs/tokyo-neo-header.png" alt="Tokyo Neo — Header, metrics & visual board" width="700">
+</p>
+<p align="center">
+  <img src="docs/tokyo-neo-charts.png" alt="Tokyo Neo — Trend charts" width="700">
+</p>
+
+## Features
+
+- **Pull** running activities from Garmin Connect with token caching and MFA support
+- **Store** in SQLite with automatic deduplication and data cleaning filters
+- **Visualize** via interactive Plotly charts (distance, pace, heart rate, cadence, elevation, calories)
+- **Themes** — Art Deco (emerald/jade + noir) and Tokyo Neo (neon cyan + hot pink) with hover effects
+- **Compare** any two time periods side-by-side with delta indicators and radar chart
+- **Summary** stats — weekly/monthly breakdowns and personal records
+- **Export** to CSV or JSON for external analysis
 
 ## Setup
 
@@ -48,8 +75,9 @@ jupyter notebook notebooks/analysis.ipynb
 
 ```
 src/            Source modules (client, db, display, export, stats)
-ui/             Streamlit dashboard
+ui/             Streamlit dashboard with multi-theme support
 notebooks/      Jupyter analysis notebook
 data/           SQLite database and auth tokens (gitignored)
 output/         CSV and JSON exports (gitignored)
+docs/           Screenshots and documentation assets
 ```
