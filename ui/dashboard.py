@@ -18,8 +18,10 @@ st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Josefin+Sans:wght@300;400;600&family=Michroma&family=Outfit:wght@300;400;500&family=Orbitron:wght@400;500;600;700&family=Poiret+One&family=Rajdhani:wght@300;400;500;600&family=Sora:wght@300;400;500;600&display=swap');
 </style>""", unsafe_allow_html=True)
 
-# ── Theme Selector ────────────────────────────────────
-theme = st.radio("Theme", ["Art Deco", "Tokyo Neo", "Blade Runner 2049"], horizontal=True)
+# ── Theme (read from session state, selectbox is at bottom of page) ──
+if "theme" not in st.session_state:
+    st.session_state.theme = "Art Deco"
+theme = st.session_state.theme
 
 # ── Theme Configuration ───────────────────────────────
 if theme == "Art Deco":
@@ -117,10 +119,34 @@ h1, h2, h3 {
 .stTabs [data-baseweb="tab-highlight"] { background-color: #00c9a7 !important; }
 .stTabs [data-baseweb="tab-border"] { background-color: #c9a84c40 !important; }
 
+/* ═══ SELECTBOX (Theme Picker) ═══ */
+[data-baseweb="select"] > div {
+    background: #12121e !important; border: 1px solid #1e1e2a !important;
+    border-radius: 0 !important; color: #c9a84c !important;
+    font-family: 'Josefin Sans', sans-serif !important; font-size: 0.75rem !important;
+    letter-spacing: 1px !important;
+}
+[data-baseweb="select"] > div:hover { border-color: #c9a84c60 !important; }
+[data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
+[data-baseweb="popover"] [role="listbox"] { background: #12121e !important; border: 1px solid #1e1e2a !important; border-radius: 0 !important; }
+[data-baseweb="popover"] [role="option"] {
+    font-family: 'Josefin Sans', sans-serif !important; font-size: 0.75rem !important;
+    color: #a09880 !important; letter-spacing: 1px !important; background: #12121e !important;
+}
+[data-baseweb="popover"] [role="option"]:hover { background: #1e1e2a !important; color: #e8e0d0 !important; }
+[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #605848 !important; background: #12121e !important; font-style: italic; }
+
+/* ═══ RADIO BUTTONS (Time Range) ═══ */
 div[data-testid="stRadio"] label {
     font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
     letter-spacing: 1px !important; font-size: 0.75rem !important;
+    color: #605848 !important; transition: color 0.3s ease;
 }
+div[data-testid="stRadio"] label:hover { color: #a09880 !important; }
+div[data-testid="stRadio"] label p { color: inherit !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #c9a84c60 !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #00c9a7 !important; }
+
 .stDateInput input {
     background-color: #12121e !important; border: 1px solid #1e1e2a !important;
     color: #e8e0d0 !important; border-radius: 0 !important;
@@ -254,10 +280,34 @@ h1, h2, h3 {
 .stTabs [data-baseweb="tab-highlight"] { background-color: #00f0ff !important; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
 .stTabs [data-baseweb="tab-border"] { background-color: #21262d !important; }
 
+/* ═══ SELECTBOX (Theme Picker) ═══ */
+[data-baseweb="select"] > div {
+    background: rgba(22, 27, 34, 0.9) !important; border: 1px solid #21262d !important;
+    border-radius: 8px !important; color: #00f0ff !important; backdrop-filter: blur(8px);
+    font-family: 'Sora', sans-serif !important; font-size: 0.75rem !important;
+    letter-spacing: 1px !important;
+}
+[data-baseweb="select"] > div:hover { border-color: rgba(0, 240, 255, 0.3) !important; }
+[data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
+[data-baseweb="popover"] [role="listbox"] { background: #161b22 !important; border: 1px solid #21262d !important; border-radius: 8px !important; }
+[data-baseweb="popover"] [role="option"] {
+    font-family: 'Sora', sans-serif !important; font-size: 0.75rem !important;
+    color: #8b949e !important; letter-spacing: 1px !important; background: #161b22 !important;
+}
+[data-baseweb="popover"] [role="option"]:hover { background: #21262d !important; color: #e6edf3 !important; }
+[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #484f58 !important; background: #161b22 !important; font-style: italic; }
+
+/* ═══ RADIO BUTTONS (Time Range) ═══ */
 div[data-testid="stRadio"] label {
     font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
     letter-spacing: 1px !important; font-size: 0.75rem !important;
+    color: #484f58 !important; transition: color 0.2s ease;
 }
+div[data-testid="stRadio"] label:hover { color: #8b949e !important; }
+div[data-testid="stRadio"] label p { color: inherit !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #21262d !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #00f0ff !important; box-shadow: 0 0 6px rgba(0, 240, 255, 0.3); }
+
 .stDateInput input {
     background-color: #161b22 !important; border: 1px solid #21262d !important;
     color: #e6edf3 !important; border-radius: 6px !important;
@@ -438,10 +488,34 @@ h1, h2, h3 {
 .stTabs [data-baseweb="tab-highlight"] { background-color: #e0943a !important; box-shadow: 0 0 8px rgba(224, 148, 58, 0.2); }
 .stTabs [data-baseweb="tab-border"] { background-color: #2c2722 !important; }
 
+/* ═══ SELECTBOX (Theme Picker) ═══ */
+[data-baseweb="select"] > div {
+    background: #191714 !important; border: 1px solid #2c2722 !important;
+    border-radius: 2px !important; color: #e0943a !important;
+    font-family: 'Orbitron', sans-serif !important; font-size: 0.7rem !important;
+    letter-spacing: 1px !important;
+}
+[data-baseweb="select"] > div:hover { border-color: rgba(224, 148, 58, 0.3) !important; }
+[data-baseweb="select"] [data-baseweb="icon"] { display: none !important; }
+[data-baseweb="popover"] [role="listbox"] { background: #191714 !important; border: 1px solid #2c2722 !important; border-radius: 2px !important; }
+[data-baseweb="popover"] [role="option"] {
+    font-family: 'Orbitron', sans-serif !important; font-size: 0.7rem !important;
+    color: #8a7d68 !important; letter-spacing: 1px !important; background: #191714 !important;
+}
+[data-baseweb="popover"] [role="option"]:hover { background: #2c2722 !important; color: #d8c9a3 !important; }
+[data-baseweb="popover"] [role="option"][aria-selected="true"] { color: #554f44 !important; background: #191714 !important; font-style: italic; }
+
+/* ═══ RADIO BUTTONS (Time Range) ═══ */
 div[data-testid="stRadio"] label {
     font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
     letter-spacing: 1px !important; font-size: 0.7rem !important;
+    color: #554f44 !important; transition: color 0.3s ease;
 }
+div[data-testid="stRadio"] label:hover { color: #8a7d68 !important; }
+div[data-testid="stRadio"] label p { color: inherit !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child { border-color: #2c2722 !important; }
+div[data-testid="stRadio"] [data-baseweb="radio"] > div:first-child > div { background-color: #e0943a !important; box-shadow: 0 0 6px rgba(224, 148, 58, 0.3); }
+
 .stDateInput input {
     background-color: #191714 !important; border: 1px solid #2c2722 !important;
     color: #d8c9a3 !important; border-radius: 2px !important;
@@ -804,6 +878,59 @@ def br_visual_board(latest, df):
         </div>'''
     html += '</div>'
     st.markdown(html, unsafe_allow_html=True)
+
+
+def deco_radar_chart(stats_a, stats_b, label_a, label_b):
+    """Radar chart — Art Deco cyan/gold palette."""
+    categories = ["Distance", "Runs", "Speed", "Cadence", "Elevation", "Calories"]
+
+    def get_vals(s):
+        pace = s["Avg Pace"]
+        return [
+            s["Total km"], s["Runs"],
+            1 / pace if pd.notna(pace) and pace > 0 else 0,
+            s.get("Avg Cadence", 0) or 0,
+            s["Total Elevation"] or 0, s["Total Calories"] or 0,
+        ]
+
+    raw_a, raw_b = get_vals(stats_a), get_vals(stats_b)
+    norm_a, norm_b = [], []
+    for va, vb in zip(raw_a, raw_b):
+        mx = max(abs(va), abs(vb))
+        if mx > 0:
+            norm_a.append(va / mx * 100)
+            norm_b.append(vb / mx * 100)
+        else:
+            norm_a.append(50)
+            norm_b.append(50)
+
+    fig = go.Figure()
+    for vals, name, color, fill in [
+        (norm_a, label_a, "#00c9a7", "rgba(0,201,167,0.08)"),
+        (norm_b, label_b, "#c9a84c", "rgba(201,168,76,0.08)"),
+    ]:
+        fig.add_trace(go.Scatterpolar(
+            r=vals + [vals[0]], theta=categories + [categories[0]],
+            fill="toself", name=name,
+            line=dict(color=color, width=2), fillcolor=fill,
+            marker=dict(size=5),
+        ))
+
+    fig.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(visible=True, range=[0, 105], gridcolor="#1e1e2a",
+                            linecolor="#1e1e2a", tickfont=dict(size=8, color="#605848")),
+            angularaxis=dict(gridcolor="#1e1e2a", linecolor="#1e1e2a",
+                             tickfont=dict(size=11, color="#a09880", family="Josefin Sans, sans-serif")),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Jost, sans-serif", color="#a09880"),
+        legend=dict(font=dict(color="#a09880", family="Josefin Sans, sans-serif", size=11),
+                    orientation="h", yanchor="bottom", y=-0.15, x=0.5, xanchor="center"),
+        height=400, margin=dict(l=60, r=60, t=30, b=50),
+    )
+    return fig
 
 
 def br_radar_chart(stats_a, stats_b, label_a, label_b):
@@ -1176,6 +1303,11 @@ with tab_compare:
                 br_radar_chart(stats_a, stats_b,
                                f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
                 use_container_width=True)
+        else:
+            st.plotly_chart(
+                deco_radar_chart(stats_a, stats_b,
+                                 f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
+                use_container_width=True)
 
         divider()
 
@@ -1208,3 +1340,11 @@ with tab_compare:
 
                 delta_inv = "inverse" if lower_is_better else "normal"
                 row[j].metric(label, display_b, delta=delta_str, delta_color=delta_inv)
+
+# ── Theme Selector (bottom of page) ─────────────────
+divider()
+_left, _center, _right = st.columns([2, 1, 2])
+with _center:
+    st.selectbox("Theme", ["Art Deco", "Tokyo Neo", "Blade Runner 2049"],
+                 index=["Art Deco", "Tokyo Neo", "Blade Runner 2049"].index(theme),
+                 key="theme", label_visibility="collapsed")
