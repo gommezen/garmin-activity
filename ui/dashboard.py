@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -715,6 +716,10 @@ hr { border-color: #2c272240 !important; }
 _theme_css = {"Art Deco": ART_DECO_CSS, "Tokyo Neo": TOKYO_NEO_CSS, "Blade Runner 2049": BLADE_RUNNER_CSS}
 st.markdown(f"<style>{_theme_css[theme]}</style>", unsafe_allow_html=True)
 
+# ── Pace Zone Constants ──────────────────────────────
+ZONE_BINS = [0, 3.333, 4.0, 4.583, 5.417, float("inf")]
+ZONE_LABELS = ["Speed", "Threshold", "Tempo", "Easy", "Recovery"]
+ZONE_COLORS = ["#e53935", "#ff9800", "#fdd835", "#42a5f5", "#ab47bc"]
 
 # ── Helpers ───────────────────────────────────────────
 
@@ -1188,7 +1193,7 @@ st.caption(f"{len(filtered_df)} activities" + (f" \u00b7 last {days} days" if da
 
 # ── Tabs ──────────────────────────────────────────────
 
-tab_trends, tab_summary, tab_compare = st.tabs(["Trends", "Summary", "Compare"])
+tab_trends, tab_summary, tab_compare, tab_zones = st.tabs(["Trends", "Summary", "Compare", "Zones"])
 
 # ── Trends ────────────────────────────────────────────
 
@@ -1355,6 +1360,103 @@ with tab_compare:
 
                 delta_inv = "inverse" if lower_is_better else "normal"
                 row[j].metric(label, display_b, delta=delta_str, delta_color=delta_inv)
+
+# ── Zones ────────────────────────────────────────────
+
+with tab_zones:
+    # Classify each activity into a pace zone
+    zdf = filtered_df.dropna(subset=["pace_min_km"]).copy()
+    zdf["pace_zone"] = pd.cut(zdf["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
+
+    zone_counts = zdf["pace_zone"].value_counts().reindex(ZONE_LABELS, fill_value=0)
+    zone_km = zdf.groupby("pace_zone", observed=True)["distance_km"].sum().reindex(ZONE_LABELS, fill_value=0)
+    total = zone_counts.sum()
+
+    # ── Zone summary cards ──
+    section_label("Pace Zone Breakdown")
+
+    zone_card_html = '<div class="metric-grid">'
+    for label, color in zip(ZONE_LABELS, ZONE_COLORS):
+        count = int(zone_counts.get(label, 0))
+        pct = count / total * 100 if total else 0
+        zone_card_html += (
+            f'<div class="m-card">'
+            f'<div class="m-label" style="color:{color}">{label}</div>'
+            f'<div class="m-val">{count}<span class="m-unit"> runs</span></div>'
+            f'<div style="font-size:0.75rem;color:{DIM}">{pct:.0f}% · {zone_km.get(label, 0):.0f} km</div>'
+            f'</div>'
+        )
+    zone_card_html += '</div>'
+    st.markdown(zone_card_html, unsafe_allow_html=True)
+
+    divider()
+
+    # ── Row 1: Donut + Bar ──
+    col_donut, col_bar = st.columns(2)
+
+    with col_donut:
+        fig_donut = go.Figure(data=[go.Pie(
+            labels=ZONE_LABELS, values=zone_counts.values,
+            hole=0.55, marker=dict(colors=ZONE_COLORS, line=dict(color=BG, width=2)),
+            textinfo="percent", textfont=dict(family=FONT_B, size=12, color=TXT),
+            hovertemplate="<b>%{label}</b><br>%{value} runs (%{percent})<extra></extra>",
+            sort=False,
+        )])
+        fig_donut.update_layout(
+            title=dict(text="ZONE DISTRIBUTION", font=dict(family=FONT_H, size=13, color=TXT),
+                       x=0.5, xanchor="center"),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor=PLOT_BG,
+            font=dict(family=FONT_B, color=DIM, size=11),
+            height=380, margin=dict(l=20, r=20, t=50, b=30),
+            legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5,
+                        font=dict(color=DIM, family=FONT_B, size=10)),
+            hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
+                            font=dict(color=TXT, family=FONT_B, size=12)),
+        )
+        st.plotly_chart(fig_donut, use_container_width=True)
+
+    with col_bar:
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            y=ZONE_LABELS, x=zone_counts.values, orientation="h",
+            marker=dict(color=ZONE_COLORS, line=dict(color=BG, width=1)),
+            text=[f"{zone_km[z]:.0f} km" for z in ZONE_LABELS],
+            textposition="outside", textfont=dict(family=FONT_B, size=10, color=DIM),
+            hovertemplate="<b>%{y}</b><br>%{x} runs<extra></extra>",
+        ))
+        layout_bar = _layout("Runs per zone", "runs")
+        layout_bar["yaxis"] = dict(autorange="reversed", tickfont=dict(color=TXT, size=11, family=FONT_B),
+                                   gridcolor=GRID, linecolor=BORDER)
+        layout_bar["xaxis"]["title"] = dict(text="runs", font=dict(size=11, color=DIM))
+        layout_bar["height"] = 380
+        fig_bar.update_layout(**layout_bar)
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    divider()
+
+    # ── Row 2: Yearly zone trend ──
+    section_label("Zone Trend by Year")
+
+    zdf["year"] = zdf["start_time"].dt.year
+    yearly_zones = zdf.groupby(["year", "pace_zone"], observed=True).size().unstack(fill_value=0)
+    yearly_zones = yearly_zones.reindex(columns=ZONE_LABELS, fill_value=0)
+    yearly_pct = yearly_zones.div(yearly_zones.sum(axis=1), axis=0) * 100
+
+    fig_trend = go.Figure()
+    for label, color in zip(ZONE_LABELS, ZONE_COLORS):
+        fig_trend.add_trace(go.Bar(
+            x=yearly_pct.index.astype(str), y=yearly_pct[label],
+            name=label, marker=dict(color=color, line=dict(color=BG, width=0.5)),
+            hovertemplate=f"<b>{label}</b><br>%{{y:.0f}}% of runs<extra></extra>",
+        ))
+    layout_trend = _layout("Zone mix by year", "% of runs")
+    layout_trend["barmode"] = "stack"
+    layout_trend["legend"] = dict(orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5,
+                                  font=dict(color=DIM, family=FONT_H, size=10))
+    layout_trend["height"] = 420
+    layout_trend["margin"] = dict(l=50, r=20, t=80, b=30)
+    fig_trend.update_layout(**layout_trend)
+    st.plotly_chart(fig_trend, use_container_width=True)
 
 # ── Theme Selector (bottom of page) ─────────────────
 divider()
