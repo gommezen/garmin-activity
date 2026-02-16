@@ -4,49 +4,17 @@
 .env
 
 #-----------------------#
-# Data (DB, tokens, exports)
+# Data & exports         #
 #-----------------------#
 data/
 output/
 
 #-----------------------#
-# Python
+# Python                 #
 #-----------------------#
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
-
-#-----------------------#
-# Project notes
-#-----------------------#
-CLAUDE.md
-todo.md
-.claude
-design_thoughts/
-
-#-----------------------#
-# VS Code
-#-----------------------#
-.vscode/
-.history/
-
-#-----------------------#
-# OS files
-#-----------------------#
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-#-----------------------#
-# Python
-#-----------------------#
 *.py[cod]
 *$py.class
-__pycache__/
 *.so
 .Python
 build/
@@ -67,40 +35,44 @@ wheels/
 MANIFEST
 
 #-----------------------#
-# Jupyter
+# Jupyter                #
 #-----------------------#
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
 #-----------------------#
-# Streamlit
+# Streamlit              #
 #-----------------------#
 .streamlit/
 *.streamlit
 
 #-----------------------#
-# SQLite
+# SQLite                 #
 #-----------------------#
 *.db
 *.sqlite
 .sqlite-journal
 
-#----------------------------#
-# Data (DB, tokens, exports) #
-#----------------------------#
-data/
-output/
-
 #-----------------------#
-# Python                #
-#-----------------------#
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
-
-#-----------------------#
-# Project notes         #
+# Project notes          #
 #-----------------------#
 CLAUDE.md
 todo.md
 .claude
 design_thoughts/
+
+#-----------------------#
+# VS Code               #
+#-----------------------#
+.vscode/
+.history/
+
+#-----------------------#
+# OS files               #
+#-----------------------#
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
