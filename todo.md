@@ -26,6 +26,9 @@
 - [x] Add weekly/monthly summary stats and PRs (--stats flag)
 - [x] Add Summary tab to Streamlit dashboard
 - [x] Add dev_log.json for project memory
+- [x] Pull full Garmin history (1,341 activities)
+- [x] Add data cleaning filter (removes GPS glitches, fragments, bad pace)
+- [x] Add time range selector to dashboard (1mo/3mo/6mo/1yr/all)
 
 ## Future Ideas
 - [ ] Compare performance across date ranges
