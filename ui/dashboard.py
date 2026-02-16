@@ -719,7 +719,14 @@ st.markdown(f"<style>{_theme_css[theme]}</style>", unsafe_allow_html=True)
 # ── Pace Zone Constants ──────────────────────────────
 ZONE_BINS = [0, 3.333, 4.0, 4.583, 5.417, float("inf")]
 ZONE_LABELS = ["Speed", "Threshold", "Tempo", "Easy", "Recovery"]
-ZONE_COLORS = ["#e53935", "#ff9800", "#fdd835", "#42a5f5", "#ab47bc"]
+
+# Zone colors matched to each theme's palette
+if theme == "Art Deco":
+    ZONE_COLORS = ["#c9a84c", "#00c9a7", "#4ecdc4", "#8b7355", "#c25a6e"]
+elif theme == "Tokyo Neo":
+    ZONE_COLORS = ["#ff2d78", "#ffb800", "#00ff88", "#00f0ff", "#a855f7"]
+else:  # Blade Runner 2049
+    ZONE_COLORS = ["#e0943a", "#d47a5a", "#6b9fa8", "#4a8fa5", "#8b6b4a"]
 
 # ── Helpers ───────────────────────────────────────────
 
@@ -1449,12 +1456,12 @@ with tab_zones:
             name=label, marker=dict(color=color, line=dict(color=BG, width=0.5)),
             hovertemplate=f"<b>{label}</b><br>%{{y:.0f}}% of runs<extra></extra>",
         ))
-    layout_trend = _layout("Zone mix by year", "% of runs")
+    layout_trend = _layout("", "% of runs")
     layout_trend["barmode"] = "stack"
-    layout_trend["legend"] = dict(orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5,
+    layout_trend["legend"] = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
                                   font=dict(color=DIM, family=FONT_H, size=10))
-    layout_trend["height"] = 420
-    layout_trend["margin"] = dict(l=50, r=20, t=80, b=30)
+    layout_trend["height"] = 400
+    layout_trend["margin"] = dict(l=50, r=20, t=60, b=30)
     fig_trend.update_layout(**layout_trend)
     st.plotly_chart(fig_trend, use_container_width=True)
 
