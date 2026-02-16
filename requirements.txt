@@ -1,2 +1,7 @@
 garminconnect
 python-dotenv
+pandas
+matplotlib
+jupyter
+streamlit
+plotly

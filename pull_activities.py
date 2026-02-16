@@ -16,6 +16,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 from dotenv import load_dotenv
 from garminconnect import Garmin, GarminConnectAuthenticationError
 
+from db import save_activities
+
 load_dotenv()
 
 TOKEN_DIR = Path(__file__).parent / ".garmin_tokens"
@@ -105,7 +107,7 @@ def display_activities(activities: list[dict], sport: str):
         calories = act.get("calories", 0) or 0
         avg_hr = act.get("averageHR", None)
         max_hr = act.get("maxHR", None)
-        steps = act.get("steps", None)
+        cadence = act.get("averageRunningCadenceInStepsPerMinute", None)
         elevation_gain = act.get("elevationGain", None)
         avg_speed = act.get("averageSpeed", None)
 
@@ -129,8 +131,8 @@ def display_activities(activities: list[dict], sport: str):
         if elevation_gain:
             print(f"      Elevation: +{elevation_gain:.0f} m")
 
-        if steps:
-            print(f"      Steps:    {steps:,}")
+        if cadence:
+            print(f"      Cadence:  {cadence:.0f} spm")
 
         print()
 
@@ -186,6 +188,7 @@ def main():
     client = login()
     activities = pull_activities(client, args.sport, args.days, args.limit)
     display_activities(activities, args.sport)
+    save_activities(activities)
 
     if args.save:
         save_to_json(activities, args.sport)
