@@ -1,10 +1,9 @@
 # Credentials & tokens
 .env
-.garmin_tokens/
 
-# Output & data
+# Data (DB, tokens, exports)
+data/
 output/
-garmin_data.db
 
 # Python
 __pycache__/

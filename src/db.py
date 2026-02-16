@@ -3,7 +3,7 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "garmin_data.db"
+DB_PATH = Path(__file__).parents[1] / "data" / "garmin_data.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS activities (
@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS activities (
 
 
 def _connect():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.execute(SCHEMA)
     conn.commit()
@@ -85,3 +86,19 @@ COLUMNS = [
     "activity_id", "name", "start_time", "distance_m", "duration_s",
     "calories", "avg_hr", "max_hr", "avg_speed", "elevation_gain", "cadence",
 ]
+
+
+def load_dataframe():
+    """Load all activities into a pandas DataFrame with derived columns."""
+    import pandas as pd
+
+    conn = _connect()
+    df = pd.read_sql("SELECT * FROM activities ORDER BY start_time", conn)
+    conn.close()
+
+    df.columns = COLUMNS
+    df["start_time"] = pd.to_datetime(df["start_time"])
+    df["distance_km"] = df["distance_m"] / 1000
+    df["duration_min"] = df["duration_s"] / 60
+    df["pace_min_km"] = df["duration_min"] / df["distance_km"].replace(0, float("nan"))
+    return df

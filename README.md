@@ -1,6 +1,6 @@
 # Garmin Activity Puller
 
-A simple Python CLI that pulls your activities from Garmin Connect, displays formatted summaries, and optionally exports to JSON.
+A Python CLI that pulls your running activities from Garmin Connect, stores them in SQLite, and visualizes trends via a Streamlit dashboard or Jupyter notebook.
 
 ## Setup
 
@@ -18,13 +18,38 @@ A simple Python CLI that pulls your activities from Garmin Connect, displays for
 # Pull running activities from the last 30 days
 python pull_activities.py running
 
-# Pull the 5 most recent cycling activities from the last 60 days
-python pull_activities.py cycling --days 60 --limit 5
+# Pull with custom range and limit
+python pull_activities.py running --days 90 --limit 10
 
-# Save raw data to JSON
+# Export to JSON or CSV
 python pull_activities.py running --save
+python pull_activities.py running --csv
+
+# Show weekly/monthly summary stats and PRs
+python pull_activities.py running --stats
 
 # List all supported sport types
 python pull_activities.py --list-sports
 ```
 
+## Dashboard
+
+```bash
+streamlit run ui/dashboard.py
+```
+
+## Notebook
+
+```bash
+jupyter notebook notebooks/analysis.ipynb
+```
+
+## Project Structure
+
+```
+src/            Source modules (client, db, display, export, stats)
+ui/             Streamlit dashboard
+notebooks/      Jupyter analysis notebook
+data/           SQLite database and auth tokens (gitignored)
+output/         CSV and JSON exports (gitignored)
+```
