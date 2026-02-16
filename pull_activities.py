@@ -9,8 +9,10 @@ import argparse
 # Ensure Unicode output works on Windows
 sys.stdout.reconfigure(encoding="utf-8")
 
-from src.client import login, pull_activities, SPORT_TYPES
-from src.db import save_activities
+import time
+
+from src.client import login, pull_activities, pull_laps, SPORT_TYPES
+from src.db import save_activities, save_laps, get_activities_without_laps
 from src.display import display_activities
 from src.export import save_to_json, save_to_csv
 
@@ -43,6 +45,10 @@ def main():
         help="Show weekly and monthly summary stats",
     )
     parser.add_argument(
+        "--laps", action="store_true",
+        help="Pull lap/split data for all activities in the database",
+    )
+    parser.add_argument(
         "--list-sports", action="store_true",
         help="List all supported sport types and exit",
     )
@@ -53,6 +59,25 @@ def main():
         print("Supported sport types:")
         for s in SPORT_TYPES:
             print(f"  - {s}")
+        return
+
+    if args.laps:
+        client = login()
+        pending = get_activities_without_laps()
+        if not pending:
+            print("All activities already have lap data.")
+            return
+        print(f"\nPulling laps for {len(pending)} activities...\n")
+        total_laps = 0
+        for i, (aid, name) in enumerate(pending, 1):
+            laps = pull_laps(client, aid)
+            if laps:
+                save_laps(aid, laps)
+                total_laps += len(laps)
+            print(f"  [{i}/{len(pending)}] {name or 'Unnamed'} — {len(laps)} laps")
+            if i < len(pending):
+                time.sleep(1.0)
+        print(f"\nDone. Pulled {total_laps} total laps for {len(pending)} activities.")
         return
 
     if not args.sport:

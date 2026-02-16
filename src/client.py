@@ -5,7 +5,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-from garminconnect import Garmin, GarminConnectAuthenticationError
+import time
+
+from garminconnect import Garmin, GarminConnectAuthenticationError, GarminConnectTooManyRequestsError
 
 load_dotenv()
 
@@ -76,3 +78,17 @@ def pull_activities(client: Garmin, sport: str, days: int, limit: int) -> list[d
         activities = activities[:limit]
 
     return activities
+
+
+def pull_laps(client: Garmin, activity_id: int, max_retries: int = 5) -> list[dict]:
+    """Fetch lap/split data for a single activity with rate-limit retry."""
+    for attempt in range(max_retries):
+        try:
+            splits = client.get_activity_splits(str(activity_id))
+            return splits.get("lapDTOs", [])
+        except GarminConnectTooManyRequestsError:
+            wait = 60 * (2 ** attempt)
+            print(f"  Rate limited. Waiting {wait}s...")
+            time.sleep(wait)
+    print(f"  Failed to fetch laps for {activity_id} after {max_retries} retries")
+    return []

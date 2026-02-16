@@ -5,7 +5,7 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parents[1] / "data" / "garmin_data.db"
 
-SCHEMA = """
+SCHEMA_ACTIVITIES = """
 CREATE TABLE IF NOT EXISTS activities (
     activity_id     INTEGER PRIMARY KEY,
     name            TEXT,
@@ -21,11 +21,31 @@ CREATE TABLE IF NOT EXISTS activities (
 )
 """
 
+SCHEMA_LAPS = """
+CREATE TABLE IF NOT EXISTS laps (
+    activity_id     INTEGER,
+    lap_index       INTEGER,
+    distance_m      REAL DEFAULT 0,
+    duration_s      REAL DEFAULT 0,
+    avg_speed       REAL,
+    avg_hr          REAL,
+    max_hr          REAL,
+    cadence         REAL,
+    elevation_gain  REAL,
+    elevation_loss  REAL,
+    calories        REAL,
+    intensity       TEXT,
+    PRIMARY KEY (activity_id, lap_index),
+    FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
+)
+"""
+
 
 def _connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.execute(SCHEMA)
+    conn.execute(SCHEMA_ACTIVITIES)
+    conn.execute(SCHEMA_LAPS)
     conn.commit()
     return conn
 
@@ -117,5 +137,75 @@ def load_dataframe(raw=False):
         filtered = total - len(df)
         if filtered:
             print(f"Filtered {filtered} bad records ({len(df)} clean activities)")
+
+    return df
+
+
+# ── Lap data ─────────────────────────────────────────
+
+
+def save_laps(activity_id: int, lap_dtos: list[dict]):
+    """Insert laps for an activity, skipping duplicates."""
+    conn = _connect()
+    for lap in lap_dtos:
+        conn.execute(
+            """INSERT OR IGNORE INTO laps
+               (activity_id, lap_index, distance_m, duration_s, avg_speed,
+                avg_hr, max_hr, cadence, elevation_gain, elevation_loss,
+                calories, intensity)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                activity_id,
+                lap.get("lapIndex", 0),
+                lap.get("distance", 0) or 0,
+                lap.get("duration", 0) or 0,
+                lap.get("averageSpeed"),
+                lap.get("averageHR"),
+                lap.get("maxHR"),
+                lap.get("averageCadence"),
+                lap.get("elevationGain"),
+                lap.get("elevationLoss"),
+                lap.get("calories", 0) or 0,
+                lap.get("intensityType"),
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_activities_without_laps() -> list[tuple]:
+    """Return (activity_id, name) pairs for activities missing lap data."""
+    conn = _connect()
+    rows = conn.execute(
+        """SELECT a.activity_id, a.name FROM activities a
+           LEFT JOIN laps l ON a.activity_id = l.activity_id
+           WHERE l.activity_id IS NULL
+           ORDER BY a.start_time"""
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def load_laps_dataframe():
+    """Load laps into a DataFrame with derived columns, joined to activity info."""
+    import pandas as pd
+
+    conn = _connect()
+    df = pd.read_sql(
+        """SELECT l.*, a.name, a.start_time
+           FROM laps l
+           JOIN activities a ON l.activity_id = a.activity_id
+           ORDER BY a.start_time, l.lap_index""",
+        conn,
+    )
+    conn.close()
+
+    if df.empty:
+        return df
+
+    df["start_time"] = pd.to_datetime(df["start_time"])
+    df["distance_km"] = df["distance_m"] / 1000
+    df["duration_min"] = df["duration_s"] / 60
+    df["pace_min_km"] = df["duration_min"] / df["distance_km"].replace(0, float("nan"))
 
     return df
