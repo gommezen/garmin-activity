@@ -16,11 +16,18 @@
 - [x] Fix --list-sports requiring sport argument
 - [x] Add README.md
 - [x] Clean up .gitignore
+- [x] Add SQLite database with auto-save on pull
+- [x] Add Streamlit dashboard with interactive Plotly charts
+- [x] Add Jupyter notebook for data exploration
+- [x] Replace steps with cadence (spm) — more relevant for running
+- [x] Switch charts to Plotly for interactivity (hover, zoom, pan)
+- [x] Reorganize project into data-science folder structure (src/, ui/, notebooks/, data/)
+- [x] Export to CSV for spreadsheet analysis (--csv flag)
+- [x] Add weekly/monthly summary stats and PRs (--stats flag)
+- [x] Add Summary tab to Streamlit dashboard
+- [x] Add dev_log.json for project memory
 
 ## Future Ideas
-- [ ] Export to CSV for spreadsheet analysis
-- [ ] Add weekly/monthly summary stats (totals, averages, PRs)
-- [ ] Plot activity trends over time (matplotlib or plotly)
 - [ ] Compare performance across date ranges
 - [ ] Auto-download .fit files for deeper analysis
 - [ ] Schedule automatic pulls (daily/weekly cron job)
