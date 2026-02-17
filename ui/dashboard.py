@@ -1293,7 +1293,7 @@ with tab_summary:
             ("Distance", f"{totals['total_km']:.0f}", "km"),
             ("Time", f"{totals['total_hours']:.0f}", "hrs"),
             ("Elevation", f"+{totals['total_elevation']:.0f}", "m"),
-            ("Calories", f"{totals['total_calories']:.0f}", "kcal"),
+            ("Marathons", f"{totals['total_km'] / 42.195:.1f}", "\u00d7 42.2km"),
         ]:
             totals_html += (f'<div class="m-card"><div class="m-label">{label}</div>'
                             f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
