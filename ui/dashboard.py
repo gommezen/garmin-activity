@@ -1237,9 +1237,10 @@ with tab_trends:
             hovertemplate="%{x|%b %d, %Y}<br><b>%{y:.1f} km</b><extra></extra>",
         ))
         layout_wk = _layout("Weekly mileage", "km")
-        layout_wk["legend"] = dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+        layout_wk["legend"] = dict(orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5,
                                    font=dict(color=DIM, family=FONT_H, size=10))
-        layout_wk["height"] = 380
+        layout_wk["height"] = 400
+        layout_wk["margin"] = dict(l=50, r=20, t=120, b=30)
         fig_wk.update_layout(**layout_wk)
         st.plotly_chart(fig_wk, use_container_width=True)
 
