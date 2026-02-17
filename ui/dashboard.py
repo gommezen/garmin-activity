@@ -161,6 +161,23 @@ hr { border-color: #c9a84c40 !important; }
 [data-testid="stCaptionContainer"] {
     font-family: 'Jost', sans-serif !important; color: #605848 !important; letter-spacing: 1px !important;
 }
+/* ═══ EXPANDER ═══ */
+[data-testid="stExpander"] {
+    background: linear-gradient(145deg, #12121e 0%, #16162a 100%) !important;
+    border: none !important; border-top: 2px solid #00c9a7 !important;
+    border-radius: 0 !important; padding: 0 !important; text-align: center;
+    transition: all 0.35s ease;
+}
+[data-testid="stExpander"] summary {
+    font-family: 'Josefin Sans', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 3px !important; font-size: 0.6rem !important; color: #c9a84c !important;
+    text-transform: uppercase !important; padding: 1rem 0.6rem !important;
+    justify-content: center !important;
+}
+[data-testid="stExpander"] summary:hover { color: #e8e0d0 !important; }
+[data-testid="stExpander"] summary svg { fill: #c9a84c !important; width: 0.7rem !important; height: 0.7rem !important; }
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] { border-top: none !important; }
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a0a0f; }
 ::-webkit-scrollbar-thumb { background: #1e1e2a; }
@@ -326,6 +343,23 @@ hr { border-color: #21262d !important; }
 [data-testid="stCaptionContainer"] {
     font-family: 'Outfit', sans-serif !important; color: #484f58 !important; letter-spacing: 1px !important;
 }
+/* ═══ EXPANDER ═══ */
+[data-testid="stExpander"] {
+    background: rgba(22, 27, 34, 0.9) !important; border: none !important;
+    border-top: 2px solid #00f0ff !important; border-radius: 8px !important;
+    backdrop-filter: blur(8px); padding: 0 !important; text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-testid="stExpander"] summary {
+    font-family: 'Sora', sans-serif !important; font-weight: 300 !important;
+    letter-spacing: 2px !important; font-size: 0.6rem !important; color: #8b949e !important;
+    text-transform: uppercase !important; padding: 1rem 0.6rem !important;
+    justify-content: center !important;
+}
+[data-testid="stExpander"] summary:hover { color: #e6edf3 !important; }
+[data-testid="stExpander"] summary svg { fill: #00f0ff !important; width: 0.7rem !important; height: 0.7rem !important; }
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] { border-top: none !important; }
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0d1117; }
 ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
@@ -538,6 +572,23 @@ hr { border-color: #2c272240 !important; }
 [data-testid="stCaptionContainer"] {
     font-family: 'Rajdhani', sans-serif !important; color: #554f44 !important; letter-spacing: 1px !important;
 }
+/* ═══ EXPANDER ═══ */
+[data-testid="stExpander"] {
+    background: linear-gradient(145deg, #191714 0%, #1d1a16 100%) !important;
+    border: none !important; border-top: 2px solid #e0943a !important;
+    border-radius: 2px !important; padding: 0 !important; text-align: center;
+    transition: all 0.4s ease;
+}
+[data-testid="stExpander"] summary {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 400 !important;
+    letter-spacing: 2px !important; font-size: 0.55rem !important; color: #8a7d68 !important;
+    text-transform: uppercase !important; padding: 1rem 0.6rem !important;
+    justify-content: center !important;
+}
+[data-testid="stExpander"] summary:hover { color: #d8c9a3 !important; }
+[data-testid="stExpander"] summary svg { fill: #e0943a !important; width: 0.7rem !important; height: 0.7rem !important; }
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] { border-top: none !important; }
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0f0e0c; }
 ::-webkit-scrollbar-thumb { background: #2c2722; border-radius: 1px; }
@@ -1177,6 +1228,55 @@ if theme == "Tokyo Neo":
     neo_visual_board(latest, df)
 elif theme == "Blade Runner 2049":
     br_visual_board(latest, df)
+
+# Lap breakdown for latest run
+_latest_laps = load_laps_dataframe()
+if not _latest_laps.empty:
+    _latest_laps = _latest_laps[_latest_laps["activity_id"] == latest["activity_id"]]
+if not _latest_laps.empty:
+    _ll = _latest_laps.dropna(subset=["pace_min_km"])
+    _ll = _ll[_ll["pace_min_km"] > 0]
+    if not _ll.empty:
+        _fastest = _ll["pace_min_km"].min()
+        _slowest = _ll["pace_min_km"].max()
+        _f_str = f"{int(_fastest)}:{int((_fastest % 1) * 60):02d}"
+        _s_str = f"{int(_slowest)}:{int((_slowest % 1) * 60):02d}"
+
+        with st.expander(f"Lap Breakdown \u00b7 {len(_ll)} laps"):
+            # Split selector (matching Time Range button width)
+            _splitl, _splitr = st.columns([1, 4])
+            with _splitl:
+                _split_choice = st.selectbox("Splits", ["1 km", "5 km", "10 km"], index=0,
+                                              label_visibility="collapsed", key="lap_splits")
+            
+            # Classify laps into zones for coloring
+            _ll = _ll.copy()
+            _ll["pace_zone"] = pd.cut(_ll["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
+            _zone_color_map = dict(zip(ZONE_LABELS, ZONE_COLORS))
+            _bar_colors = [_zone_color_map.get(z, DIM) for z in _ll["pace_zone"]]
+
+            _lap_labels = [f"Lap {i+1} ({row['distance_km']:.2f} km)"
+                           for i, row in _ll.reset_index(drop=True).iterrows()]
+            _pace_strs = [f"{int(p)}:{int((p % 1) * 60):02d}" for p in _ll["pace_min_km"]]
+
+            fig_laps = go.Figure()
+            fig_laps.add_trace(go.Bar(
+                y=_lap_labels, x=_ll["pace_min_km"].values, orientation="h",
+                marker=dict(color=_bar_colors, line=dict(color=BG, width=0.5)),
+                text=_pace_strs, textposition="outside",
+                textfont=dict(family=FONT_B, size=10, color=TXT),
+                hovertemplate="<b>%{y}</b><br>Pace: %{text}<extra></extra>",
+            ))
+            _lap_layout = _layout("", "min/km")
+            _lap_layout["yaxis"] = dict(autorange="reversed",
+                                        tickfont=dict(color=TXT, size=10, family=FONT_B),
+                                        gridcolor=GRID, linecolor=BORDER)
+            _lap_layout["xaxis"]["title"] = dict(text="min/km", font=dict(size=10, color=DIM))
+            _lap_layout["xaxis"]["autorange"] = "reversed"
+            _lap_layout["height"] = max(200, len(_ll) * 35 + 60)
+            _lap_layout["margin"] = dict(l=130, r=50, t=20, b=30)
+            fig_laps.update_layout(**_lap_layout)
+            st.plotly_chart(fig_laps, use_container_width=True)
 
 divider()
 
