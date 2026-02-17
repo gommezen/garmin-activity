@@ -10,7 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from src.db import load_dataframe, load_laps_dataframe
-from src.stats import weekly_summary, monthly_summary, personal_records
+from src.stats import (get_available_years, year_totals, year_highlights,
+                       monthly_breakdown, personal_records, _fmt_pace)
 
 st.set_page_config(page_title="Garmin Running", page_icon="\u25c6", layout="wide")
 
@@ -1266,9 +1267,122 @@ with tab_trends:
 # ── Summary ───────────────────────────────────────────
 
 with tab_summary:
-    # ── Personal Records (all-time, ignores time filter) ──
+    # ── Year Selector ──
+    section_label("Year in Review")
+
+    years = get_available_years(df)
+    _yl, _ym, _yr = st.columns([2, 1, 2])
+    with _ym:
+        selected_year = st.selectbox("Year", years, index=0,
+                                      key="year_select", label_visibility="collapsed")
+
+    year_df = df[df["start_time"].dt.year == selected_year]
+
+    if year_df.empty:
+        st.warning(f"No activities found for {selected_year}")
+    else:
+        divider()
+
+        # ── Year Totals ──
+        section_label(f"{selected_year} Totals")
+        totals = year_totals(year_df)
+
+        totals_html = '<div class="metric-grid" style="grid-template-columns: repeat(5, 1fr);">'
+        for label, val, unit in [
+            ("Runs", f"{totals['runs']}", ""),
+            ("Distance", f"{totals['total_km']:.0f}", "km"),
+            ("Time", f"{totals['total_hours']:.0f}", "hrs"),
+            ("Elevation", f"+{totals['total_elevation']:.0f}", "m"),
+            ("Calories", f"{totals['total_calories']:.0f}", "kcal"),
+        ]:
+            totals_html += (f'<div class="m-card"><div class="m-label">{label}</div>'
+                            f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
+        totals_html += '</div>'
+        st.markdown(totals_html, unsafe_allow_html=True)
+
+        divider()
+
+        # ── Highlights ──
+        section_label(f"{selected_year} Highlights")
+        hl = year_highlights(year_df)
+
+        days_in_year = 366 if selected_year % 4 == 0 else 365
+        hl_items = [
+            ("Best Month", hl["best_month"]["month"],
+             f"{hl['best_month']['km']:.0f} km \u00b7 {hl['best_month']['runs']} runs"),
+            ("Biggest Week", hl["biggest_week"]["week"],
+             f"{hl['biggest_week']['km']:.0f} km \u00b7 {hl['biggest_week']['runs']} runs"),
+        ]
+        if "fastest_run" in hl:
+            hl_items.append(("Fastest Run", hl["fastest_run"]["pace"],
+                             f"{hl['fastest_run']['distance']:.1f} km \u00b7 {hl['fastest_run']['date']}"))
+        hl_items += [
+            ("Longest Run", f"{hl['longest_run']['km']:.1f} km",
+             f"{hl['longest_run']['pace']} \u00b7 {hl['longest_run']['date']}"),
+            ("Longest Streak", f"{hl['longest_streak']} days", "consecutive days running"),
+            ("Active Days", f"{hl['active_days']}",
+             f"{hl['active_days'] / days_in_year * 100:.0f}% of year"),
+        ]
+
+        hl_html = f'<div class="pr-grid" style="grid-template-columns: repeat(3, 1fr);">'
+        for label, val, detail in hl_items:
+            hl_html += (f'<div class="pr-card"><div class="pr-label">{label}</div>'
+                        f'<div class="pr-val">{val}</div>'
+                        f'<div class="pr-detail">{detail}</div></div>')
+        hl_html += '</div>'
+        st.markdown(hl_html, unsafe_allow_html=True)
+
+        divider()
+
+        # ── Month by Month ──
+        section_label("Month by Month")
+        monthly = monthly_breakdown(year_df)
+        max_km = monthly["total_km"].max() if monthly["total_km"].max() > 0 else 1
+
+        month_html = '<div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">'
+        for _, row in monthly.iterrows():
+            runs = int(row["runs"])
+            km = row["total_km"]
+            pace = row["avg_pace"]
+            intensity = km / max_km if max_km > 0 else 0
+            opacity = 0.35 + (intensity * 0.65)
+
+            km_str = f"{km:.0f}" if km > 0 else "\u2014"
+            pace_str = _fmt_pace(pace).replace(" min/km", "") if pd.notna(pace) and km > 0 else "\u2014"
+            runs_str = f"{runs} runs" if runs != 1 else "1 run"
+            detail = f"{runs_str} \u00b7 {pace_str}" if km > 0 else "No runs"
+
+            month_html += (
+                f'<div class="m-card" style="opacity: {opacity};">'
+                f'<div class="m-label">{row["month_name"]}</div>'
+                f'<div class="m-val">{km_str}<span class="m-unit"> km</span></div>'
+                f'<div style="font-size:0.7rem;color:{DIM};margin-top:0.2rem;">{detail}</div>'
+                f'</div>'
+            )
+        month_html += '</div>'
+        st.markdown(month_html, unsafe_allow_html=True)
+
+        divider()
+
+        # ── Monthly Progress Chart ──
+        section_label("Monthly Progress")
+        fig_mp = go.Figure()
+        fig_mp.add_trace(go.Bar(
+            x=monthly["month_name"], y=monthly["total_km"],
+            marker=dict(color=CC["dist"], opacity=0.8, line=dict(color=BG, width=0.5)),
+            hovertemplate="<b>%{x}</b><br>%{y:.0f} km<extra></extra>",
+        ))
+        layout_mp = _layout(f"{selected_year} MONTHLY DISTANCE", "km")
+        layout_mp["height"] = 320
+        layout_mp["xaxis"]["tickangle"] = 0
+        fig_mp.update_layout(**layout_mp)
+        st.plotly_chart(fig_mp, use_container_width=True)
+
+        divider()
+
+    # ── Personal Records (All-Time) ──
+    section_label("Personal Records \u00b7 All-Time")
     prs = personal_records(df)
-    section_label("Personal Records")
 
     pr_items = [
         ("Fastest 1K", prs.get("fastest_1k")),
@@ -1283,92 +1397,6 @@ with tab_summary:
                         f'<div class="pr-detail">{pr["detail"]} \u00b7 {pr["date"]}</div></div>')
     pr_html += '</div>'
     st.markdown(pr_html, unsafe_allow_html=True)
-
-    divider()
-
-    # ── Monthly Summary with picker ──
-    section_label("Monthly Summary")
-
-    monthly = monthly_summary(df)
-    monthly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
-                        "Avg HR", "Elevation (m)", "Calories"]
-    month_options = monthly.index.tolist()
-
-    _ml, _mr = st.columns([1, 4])
-    with _ml:
-        selected_month = st.selectbox("Month", month_options, index=len(month_options) - 1,
-                                       key="month_pick", label_visibility="collapsed")
-
-    m = monthly.loc[selected_month]
-    m_pace = m["Avg Pace"]
-    m_pace_str = f"{int(m_pace)}:{int((m_pace % 1) * 60):02d}" if pd.notna(m_pace) else "—"
-    m_cards = [
-        ("Runs", f"{int(m['Runs'])}", ""),
-        ("Distance", f"{m['Total km']:.1f}", "km"),
-        ("Time", f"{m['Total min']:.0f}", "min"),
-        ("Avg Pace", m_pace_str, "min/km"),
-    ]
-    m_cards2 = []
-    if pd.notna(m["Avg HR"]):
-        m_cards2.append(("Avg HR", f"{m['Avg HR']:.0f}", "bpm"))
-    if pd.notna(m["Avg Cadence"]):
-        m_cards2.append(("Cadence", f"{m['Avg Cadence']:.0f}", "spm"))
-    if pd.notna(m["Elevation (m)"]):
-        m_cards2.append(("Elevation", f"+{m['Elevation (m)']:.0f}", "m"))
-    if pd.notna(m["Calories"]):
-        m_cards2.append(("Calories", f"{m['Calories']:.0f}", "kcal"))
-
-    for card_row in [m_cards, m_cards2]:
-        if card_row:
-            html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(card_row)}, 1fr);">'
-            for label, val, unit in card_row:
-                html += (f'<div class="m-card"><div class="m-label">{label}</div>'
-                         f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
-            html += '</div>'
-            st.markdown(html, unsafe_allow_html=True)
-
-    divider()
-
-    # ── Weekly Summary with picker ──
-    section_label("Weekly Summary")
-
-    weekly = weekly_summary(df)
-    weekly.columns = ["Runs", "Total km", "Total min", "Avg Pace", "Avg Cadence",
-                       "Avg HR", "Elevation (m)", "Calories"]
-    week_options = weekly.index.tolist()
-
-    _wl, _wr = st.columns([1, 4])
-    with _wl:
-        selected_week = st.selectbox("Week", week_options, index=len(week_options) - 1,
-                                      key="week_pick", label_visibility="collapsed")
-
-    w = weekly.loc[selected_week]
-    w_pace = w["Avg Pace"]
-    w_pace_str = f"{int(w_pace)}:{int((w_pace % 1) * 60):02d}" if pd.notna(w_pace) else "—"
-    w_cards = [
-        ("Runs", f"{int(w['Runs'])}", ""),
-        ("Distance", f"{w['Total km']:.1f}", "km"),
-        ("Time", f"{w['Total min']:.0f}", "min"),
-        ("Avg Pace", w_pace_str, "min/km"),
-    ]
-    w_cards2 = []
-    if pd.notna(w["Avg HR"]):
-        w_cards2.append(("Avg HR", f"{w['Avg HR']:.0f}", "bpm"))
-    if pd.notna(w["Avg Cadence"]):
-        w_cards2.append(("Cadence", f"{w['Avg Cadence']:.0f}", "spm"))
-    if pd.notna(w["Elevation (m)"]):
-        w_cards2.append(("Elevation", f"+{w['Elevation (m)']:.0f}", "m"))
-    if pd.notna(w["Calories"]):
-        w_cards2.append(("Calories", f"{w['Calories']:.0f}", "kcal"))
-
-    for card_row in [w_cards, w_cards2]:
-        if card_row:
-            html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(card_row)}, 1fr);">'
-            for label, val, unit in card_row:
-                html += (f'<div class="m-card"><div class="m-label">{label}</div>'
-                         f'<div class="m-val">{val}<span class="m-unit"> {unit}</span></div></div>')
-            html += '</div>'
-            st.markdown(html, unsafe_allow_html=True)
 
 # ── Compare ───────────────────────────────────────────
 

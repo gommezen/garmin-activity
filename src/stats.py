@@ -1,51 +1,125 @@
-"""Weekly and monthly summary statistics for running activities."""
+"""Summary statistics for running activities."""
 
 import pandas as pd
 
 
-def weekly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate running stats by ISO week."""
-    df = df.copy()
-    df["week"] = df["start_time"].dt.isocalendar().week.astype(int)
-    df["year"] = df["start_time"].dt.isocalendar().year.astype(int)
-    df["year_week"] = df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
-
-    grouped = df.groupby("year_week").agg(
-        runs=("activity_id", "count"),
-        total_km=("distance_km", "sum"),
-        total_min=("duration_min", "sum"),
-        avg_pace=("pace_min_km", "mean"),
-        avg_cadence=("cadence", "mean"),
-        avg_hr=("avg_hr", "mean"),
-        total_elevation=("elevation_gain", "sum"),
-        total_calories=("calories", "sum"),
-    ).round(1)
-
-    return grouped
-
-
-def monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate running stats by month."""
-    df = df.copy()
-    df["month"] = df["start_time"].dt.to_period("M").astype(str)
-
-    grouped = df.groupby("month").agg(
-        runs=("activity_id", "count"),
-        total_km=("distance_km", "sum"),
-        total_min=("duration_min", "sum"),
-        avg_pace=("pace_min_km", "mean"),
-        avg_cadence=("cadence", "mean"),
-        avg_hr=("avg_hr", "mean"),
-        total_elevation=("elevation_gain", "sum"),
-        total_calories=("calories", "sum"),
-    ).round(1)
-
-    return grouped
+MONTH_NAMES = {
+    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
+}
 
 
 def _fmt_pace(pace: float) -> str:
     """Format pace as M:SS min/km."""
     return f"{int(pace)}:{int((pace % 1) * 60):02d} min/km"
+
+
+def get_available_years(df: pd.DataFrame) -> list[int]:
+    """Get list of unique years with activity data, sorted descending."""
+    if df.empty:
+        return []
+    return sorted(df["start_time"].dt.year.unique(), reverse=True)
+
+
+def year_totals(df: pd.DataFrame) -> dict:
+    """Calculate year-level totals."""
+    return {
+        "runs": len(df),
+        "total_km": df["distance_km"].sum(),
+        "total_hours": df["duration_min"].sum() / 60,
+        "total_elevation": df["elevation_gain"].sum(),
+        "total_calories": df["calories"].sum(),
+    }
+
+
+def year_highlights(df: pd.DataFrame) -> dict:
+    """Calculate year highlights: best month, biggest week, fastest/longest run, streaks."""
+    highlights = {}
+
+    # Best month (most km)
+    df_copy = df.copy()
+    df_copy["month_num"] = df_copy["start_time"].dt.month
+    month_stats = df_copy.groupby("month_num").agg(
+        km=("distance_km", "sum"), runs=("activity_id", "count")
+    )
+    best_month_idx = month_stats["km"].idxmax()
+    highlights["best_month"] = {
+        "month": MONTH_NAMES[best_month_idx],
+        "km": month_stats.loc[best_month_idx, "km"],
+        "runs": int(month_stats.loc[best_month_idx, "runs"]),
+    }
+
+    # Biggest week (most km)
+    df_copy["iso_week"] = (df_copy["start_time"].dt.isocalendar().year.astype(str)
+                           + "-W" + df_copy["start_time"].dt.isocalendar().week.astype(str).str.zfill(2))
+    week_stats = df_copy.groupby("iso_week").agg(
+        km=("distance_km", "sum"), runs=("activity_id", "count")
+    )
+    best_week_idx = week_stats["km"].idxmax()
+    highlights["biggest_week"] = {
+        "week": best_week_idx,
+        "km": week_stats.loc[best_week_idx, "km"],
+        "runs": int(week_stats.loc[best_week_idx, "runs"]),
+    }
+
+    # Fastest run (min pace, >= 1km)
+    fast_candidates = df[df["distance_km"] >= 1.0]
+    if not fast_candidates.empty:
+        fastest = fast_candidates.loc[fast_candidates["pace_min_km"].idxmin()]
+        highlights["fastest_run"] = {
+            "pace": _fmt_pace(fastest["pace_min_km"]),
+            "date": fastest["start_time"].strftime("%b %d"),
+            "distance": fastest["distance_km"],
+            "name": fastest["name"],
+        }
+
+    # Longest run
+    longest = df.loc[df["distance_km"].idxmax()]
+    highlights["longest_run"] = {
+        "km": longest["distance_km"],
+        "date": longest["start_time"].strftime("%b %d"),
+        "pace": _fmt_pace(longest["pace_min_km"]),
+        "name": longest["name"],
+    }
+
+    # Longest streak (consecutive days)
+    dates = sorted(df["start_time"].dt.date.unique())
+    if len(dates) <= 1:
+        highlights["longest_streak"] = len(dates)
+    else:
+        current_streak = 1
+        max_streak = 1
+        for i in range(1, len(dates)):
+            if (dates[i] - dates[i - 1]).days == 1:
+                current_streak += 1
+                max_streak = max(max_streak, current_streak)
+            else:
+                current_streak = 1
+        highlights["longest_streak"] = max_streak
+
+    # Active days
+    highlights["active_days"] = df["start_time"].dt.date.nunique()
+
+    return highlights
+
+
+def monthly_breakdown(df: pd.DataFrame) -> pd.DataFrame:
+    """Get month-by-month stats for a specific year. Returns all 12 months."""
+    df_copy = df.copy()
+    df_copy["month_num"] = df_copy["start_time"].dt.month
+
+    grouped = df_copy.groupby("month_num").agg(
+        runs=("activity_id", "count"),
+        total_km=("distance_km", "sum"),
+        avg_pace=("pace_min_km", "mean"),
+    ).round(1)
+
+    # Ensure all 12 months present
+    grouped = grouped.reindex(range(1, 13), fill_value=0)
+    grouped["avg_pace"] = grouped["avg_pace"].replace(0, float("nan"))
+    grouped["month_name"] = grouped.index.map(MONTH_NAMES)
+
+    return grouped
 
 
 def personal_records(df: pd.DataFrame) -> dict:
@@ -64,7 +138,7 @@ def personal_records(df: pd.DataFrame) -> dict:
         records["fastest_1k"] = {
             "value": _fmt_pace(best["pace_min_km"]),
             "date": best["start_time"].strftime("%b %d, %Y"),
-            "detail": f"{best['distance_km']:.1f} km · {best['name']}",
+            "detail": f"{best['distance_km']:.1f} km \u00b7 {best['name']}",
         }
 
     # Fastest 5K — best average pace among runs >= 5 km
@@ -74,7 +148,7 @@ def personal_records(df: pd.DataFrame) -> dict:
         records["fastest_5k"] = {
             "value": _fmt_pace(best["pace_min_km"]),
             "date": best["start_time"].strftime("%b %d, %Y"),
-            "detail": f"{best['distance_km']:.1f} km · {best['name']}",
+            "detail": f"{best['distance_km']:.1f} km \u00b7 {best['name']}",
         }
 
     # Longest run
@@ -89,7 +163,7 @@ def personal_records(df: pd.DataFrame) -> dict:
 
 
 def print_summary_stats(df: pd.DataFrame):
-    """Print weekly and monthly summaries to console."""
+    """Print year summary and personal records to console."""
     if df.empty:
         print("No activities in database.")
         return
@@ -109,28 +183,19 @@ def print_summary_stats(df: pd.DataFrame):
         pr = prs["longest_run"]
         print(f"  Longest Run:     {pr['value']}  ({pr['detail']} on {pr['date']})")
 
-    # Monthly summary
-    monthly = monthly_summary(df)
-    print(f"\n{'='*60}")
-    print(" Monthly Summary")
-    print(f"{'='*60}")
-    print(f"  {'Month':<10} {'Runs':>5} {'Dist (km)':>10} {'Time (min)':>11} {'Avg Pace':>9}")
-    print(f"  {'-'*10} {'-'*5} {'-'*10} {'-'*11} {'-'*9}")
-    for month, row in monthly.iterrows():
-        pace = row["avg_pace"]
-        pace_str = f"{int(pace)}:{int((pace % 1) * 60):02d}" if pd.notna(pace) else "N/A"
-        print(f"  {month:<10} {int(row['runs']):>5} {row['total_km']:>10.1f} {row['total_min']:>11.0f} {pace_str:>9}")
-
-    # Weekly summary
-    weekly = weekly_summary(df)
-    print(f"\n{'='*60}")
-    print(" Weekly Summary")
-    print(f"{'='*60}")
-    print(f"  {'Week':<10} {'Runs':>5} {'Dist (km)':>10} {'Time (min)':>11} {'Avg Pace':>9}")
-    print(f"  {'-'*10} {'-'*5} {'-'*10} {'-'*11} {'-'*9}")
-    for week, row in weekly.iterrows():
-        pace = row["avg_pace"]
-        pace_str = f"{int(pace)}:{int((pace % 1) * 60):02d}" if pd.notna(pace) else "N/A"
-        print(f"  {week:<10} {int(row['runs']):>5} {row['total_km']:>10.1f} {row['total_min']:>11.0f} {pace_str:>9}")
+    # Year summary for latest year
+    years = get_available_years(df)
+    if years:
+        year = years[0]
+        year_df = df[df["start_time"].dt.year == year]
+        totals = year_totals(year_df)
+        print(f"\n{'='*60}")
+        print(f" {year} Summary")
+        print(f"{'='*60}")
+        print(f"  Runs:       {totals['runs']}")
+        print(f"  Distance:   {totals['total_km']:.0f} km")
+        print(f"  Time:       {totals['total_hours']:.0f} hrs")
+        print(f"  Elevation:  +{totals['total_elevation']:.0f} m")
+        print(f"  Calories:   {totals['total_calories']:.0f} kcal")
 
     print()
