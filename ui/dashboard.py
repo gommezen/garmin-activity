@@ -1125,6 +1125,10 @@ def neo_radar_chart(stats_a, stats_b, label_a, label_b):
 def load_data():
     return load_dataframe()
 
+@st.cache_data(ttl=60)
+def load_laps():
+    return load_laps_dataframe()
+
 
 df = load_data()
 
@@ -1229,55 +1233,6 @@ if theme == "Tokyo Neo":
 elif theme == "Blade Runner 2049":
     br_visual_board(latest, df)
 
-# Lap breakdown for latest run
-_latest_laps = load_laps_dataframe()
-if not _latest_laps.empty:
-    _latest_laps = _latest_laps[_latest_laps["activity_id"] == latest["activity_id"]]
-if not _latest_laps.empty:
-    _ll = _latest_laps.dropna(subset=["pace_min_km"])
-    _ll = _ll[_ll["pace_min_km"] > 0]
-    if not _ll.empty:
-        _fastest = _ll["pace_min_km"].min()
-        _slowest = _ll["pace_min_km"].max()
-        _f_str = f"{int(_fastest)}:{int((_fastest % 1) * 60):02d}"
-        _s_str = f"{int(_slowest)}:{int((_slowest % 1) * 60):02d}"
-
-        with st.expander(f"Lap Breakdown \u00b7 {len(_ll)} laps"):
-            # Split selector (matching Time Range button width)
-            _splitl, _splitr = st.columns([1, 4])
-            with _splitl:
-                _split_choice = st.selectbox("Splits", ["1 km", "5 km", "10 km"], index=0,
-                                              label_visibility="collapsed", key="lap_splits")
-            
-            # Classify laps into zones for coloring
-            _ll = _ll.copy()
-            _ll["pace_zone"] = pd.cut(_ll["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
-            _zone_color_map = dict(zip(ZONE_LABELS, ZONE_COLORS))
-            _bar_colors = [_zone_color_map.get(z, DIM) for z in _ll["pace_zone"]]
-
-            _lap_labels = [f"Lap {i+1} ({row['distance_km']:.2f} km)"
-                           for i, row in _ll.reset_index(drop=True).iterrows()]
-            _pace_strs = [f"{int(p)}:{int((p % 1) * 60):02d}" for p in _ll["pace_min_km"]]
-
-            fig_laps = go.Figure()
-            fig_laps.add_trace(go.Bar(
-                y=_lap_labels, x=_ll["pace_min_km"].values, orientation="h",
-                marker=dict(color=_bar_colors, line=dict(color=BG, width=0.5)),
-                text=_pace_strs, textposition="outside",
-                textfont=dict(family=FONT_B, size=10, color=TXT),
-                hovertemplate="<b>%{y}</b><br>Pace: %{text}<extra></extra>",
-            ))
-            _lap_layout = _layout("", "min/km")
-            _lap_layout["yaxis"] = dict(autorange="reversed",
-                                        tickfont=dict(color=TXT, size=10, family=FONT_B),
-                                        gridcolor=GRID, linecolor=BORDER)
-            _lap_layout["xaxis"]["title"] = dict(text="min/km", font=dict(size=10, color=DIM))
-            _lap_layout["xaxis"]["autorange"] = "reversed"
-            _lap_layout["height"] = max(200, len(_ll) * 35 + 60)
-            _lap_layout["margin"] = dict(l=130, r=50, t=20, b=30)
-            fig_laps.update_layout(**_lap_layout)
-            st.plotly_chart(fig_laps, use_container_width=True)
-
 divider()
 
 
@@ -1301,7 +1256,9 @@ st.caption(f"{len(filtered_df)} activities" + (f" \u00b7 last {days} days" if da
 
 # ── Tabs ──────────────────────────────────────────────
 
-tab_trends, tab_summary, tab_compare, tab_zones = st.tabs(["Trends", "Summary", "Compare", "Zones"])
+tab_trends, tab_explorer, tab_summary, tab_compare, tab_zones = st.tabs(
+    ["Trends", "Explorer", "Summary", "Compare", "Zones"]
+)
 
 # ── Trends ────────────────────────────────────────────
 
@@ -1364,6 +1321,246 @@ with tab_trends:
         with col2:
             st.plotly_chart(make_chart(filtered_df, "start_time", "elevation_gain",
                                        "Elevation Gain", "m", CC["elev"]), use_container_width=True)
+
+# ── Explorer ─────────────────────────────────────────
+
+with tab_explorer:
+    section_label("Run Explorer")
+
+    # Build selector options from full df, most recent first
+    _explorer_df = df.sort_values("start_time", ascending=False).reset_index(drop=True)
+    _explorer_options = []
+    for _, _erow in _explorer_df.iterrows():
+        _edate = _erow["start_time"].strftime("%b %d, %Y")
+        _ename = _erow["name"] or "Untitled"
+        _edist = f"{_erow['distance_km']:.2f} km"
+        _explorer_options.append(f"{_edate}  \u2014  {_ename}  \u2014  {_edist}")
+
+    _sel_idx = st.selectbox(
+        "Select a run",
+        range(len(_explorer_options)),
+        format_func=lambda i: _explorer_options[i],
+        index=0,
+        key="explorer_run_select",
+        label_visibility="collapsed",
+    )
+    run = _explorer_df.iloc[_sel_idx]
+
+    divider()
+
+    # ── Primary Metrics ──
+    _run_pace_m = int(run["pace_min_km"])
+    _run_pace_s = int((run["pace_min_km"] % 1) * 60)
+    _run_dur_m = int(run["duration_min"])
+    _run_dur_s = int(run["duration_s"] % 60)
+
+    _row1 = [
+        ("Distance", f"{run['distance_km']:.2f}", "km"),
+        ("Duration", f"{_run_dur_m}:{_run_dur_s:02d}", "min"),
+        ("Pace", f"{_run_pace_m}:{_run_pace_s:02d}", "/km"),
+        ("Calories", f"{run['calories']:.0f}", "kcal"),
+    ]
+    _html = '<div class="metric-grid">'
+    for _lbl, _val, _unt in _row1:
+        _html += (f'<div class="m-card"><div class="m-label">{_lbl}</div>'
+                  f'<div class="m-val">{_val}<span class="m-unit">{_unt}</span></div></div>')
+    _html += '</div>'
+    st.markdown(_html, unsafe_allow_html=True)
+
+    # ── Secondary Metrics ──
+    _row2 = []
+    if pd.notna(run["avg_hr"]):
+        _row2.append(("Avg HR", f"{run['avg_hr']:.0f}", "bpm"))
+    if pd.notna(run["max_hr"]):
+        _row2.append(("Max HR", f"{run['max_hr']:.0f}", "bpm"))
+    if pd.notna(run["elevation_gain"]):
+        _row2.append(("Elevation", f"+{run['elevation_gain']:.0f}", "m"))
+    if pd.notna(run["cadence"]):
+        _row2.append(("Cadence", f"{run['cadence']:.0f}", "spm"))
+
+    if _row2:
+        _html2 = f'<div class="metric-grid" style="grid-template-columns: repeat({len(_row2)}, 1fr);">'
+        for _lbl, _val, _unt in _row2:
+            _html2 += (f'<div class="m-card"><div class="m-label">{_lbl}</div>'
+                       f'<div class="m-val">{_val}<span class="m-unit">{_unt}</span></div></div>')
+        _html2 += '</div>'
+        st.markdown(_html2, unsafe_allow_html=True)
+
+    # ── Lap Breakdown ──
+    _all_laps = load_laps()
+    _run_laps = pd.DataFrame()
+    if not _all_laps.empty:
+        _run_laps = _all_laps[_all_laps["activity_id"] == run["activity_id"]]
+
+    if not _run_laps.empty:
+        _rl = _run_laps.dropna(subset=["pace_min_km"])
+        _rl = _rl[_rl["pace_min_km"] > 0]
+
+        if not _rl.empty:
+            divider()
+            section_label(f"Lap Breakdown \u00b7 {len(_rl)} laps")
+
+            _rl = _rl.copy()
+            _rl["pace_zone"] = pd.cut(_rl["pace_min_km"], bins=ZONE_BINS, labels=ZONE_LABELS, right=True)
+            _zone_cmap = dict(zip(ZONE_LABELS, ZONE_COLORS))
+            _rl_bar_colors = [_zone_cmap.get(z, DIM) for z in _rl["pace_zone"]]
+
+            _rl_labels = [f"Lap {i+1} ({row['distance_km']:.2f} km)"
+                          for i, row in _rl.reset_index(drop=True).iterrows()]
+            _rl_paces = [f"{int(p)}:{int((p % 1) * 60):02d}" for p in _rl["pace_min_km"]]
+
+            _rl_fastest = _rl["pace_min_km"].min()
+            _rl_slowest = _rl["pace_min_km"].max()
+
+            fig_rl = go.Figure()
+            fig_rl.add_trace(go.Bar(
+                y=_rl_labels, x=_rl["pace_min_km"].values, orientation="h",
+                marker=dict(color=_rl_bar_colors, line=dict(color=BG, width=0.5)),
+                text=_rl_paces, textposition="inside", insidetextanchor="middle",
+                textfont=dict(family=FONT_B, size=11, color=TXT),
+                hovertemplate="<b>%{y}</b><br>Pace: %{text}<extra></extra>",
+            ))
+            _rl_layout = _layout("", "min/km")
+            _rl_layout["yaxis"] = dict(autorange="reversed",
+                                       tickfont=dict(color=TXT, size=10, family=FONT_B),
+                                       gridcolor=GRID, linecolor=BORDER)
+            _rl_layout["xaxis"]["title"] = dict(text="min/km", font=dict(size=10, color=DIM))
+            _rl_pad = 0.15
+            if _rl_fastest == _rl_slowest:
+                _rl_layout["xaxis"]["range"] = [_rl_fastest + 0.5, _rl_fastest - 0.5]
+            else:
+                _rl_layout["xaxis"]["range"] = [_rl_slowest + _rl_pad, _rl_fastest - _rl_pad]
+            _rl_layout["height"] = max(200, len(_rl) * 35 + 60)
+            _rl_layout["margin"] = dict(l=110, r=30, t=20, b=35)
+            fig_rl.update_layout(**_rl_layout)
+            st.plotly_chart(fig_rl, use_container_width=True)
+
+            # ── Pace Zones for This Run ──
+            divider()
+            section_label("Pace Zones")
+
+            _zone_counts = _rl["pace_zone"].value_counts().reindex(ZONE_LABELS, fill_value=0)
+            _total_laps = _zone_counts.sum()
+
+            _zc_html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(ZONE_LABELS)}, 1fr);">'
+            for _zlabel, _zcolor in zip(ZONE_LABELS, ZONE_COLORS):
+                _cnt = int(_zone_counts.get(_zlabel, 0))
+                _pct = _cnt / _total_laps * 100 if _total_laps else 0
+                _zc_html += (
+                    f'<div class="m-card">'
+                    f'<div class="m-label" style="color:{_zcolor}">{_zlabel}</div>'
+                    f'<div class="m-val">{_cnt}<span class="m-unit"> laps</span></div>'
+                    f'<div style="font-size:0.7rem;color:{DIM}">{_pct:.0f}%</div>'
+                    f'</div>'
+                )
+            _zc_html += '</div>'
+            st.markdown(_zc_html, unsafe_allow_html=True)
+
+            # ── Heart Rate by Lap ──
+            _hr_laps = _rl.dropna(subset=["avg_hr"])
+            if not _hr_laps.empty:
+                divider()
+                section_label("Heart Rate by Lap")
+
+                _lap_nums = list(range(1, len(_hr_laps) + 1))
+                _hr_bar_colors = [_zone_cmap.get(z, DIM) for z in _hr_laps["pace_zone"]]
+
+                fig_hr = go.Figure()
+                fig_hr.add_trace(go.Scatter(
+                    x=_lap_nums, y=_hr_laps["avg_hr"].values,
+                    mode="lines+markers",
+                    marker=dict(size=8, color=_hr_bar_colors,
+                                symbol=MARKER, line=dict(width=1, color=BG)),
+                    line=dict(color=CC["hr1"], width=2),
+                    hovertemplate="Lap %{x}<br><b>%{y:.0f} bpm</b><extra></extra>",
+                    name="Avg HR",
+                ))
+                _max_hr_valid = _hr_laps.dropna(subset=["max_hr"])
+                if not _max_hr_valid.empty:
+                    _max_lap_nums = list(range(1, len(_max_hr_valid) + 1))
+                    fig_hr.add_trace(go.Scatter(
+                        x=_max_lap_nums, y=_max_hr_valid["max_hr"].values,
+                        mode="lines+markers",
+                        marker=dict(size=5, color=CC["hr2"], symbol=MARKER,
+                                    line=dict(width=1, color=BG)),
+                        line=dict(color=CC["hr2"], width=1.5, dash="dot"),
+                        hovertemplate="Lap %{x}<br><b>Max: %{y:.0f} bpm</b><extra></extra>",
+                        name="Max HR",
+                    ))
+
+                _hr_layout = _layout("", "bpm")
+                _hr_layout["xaxis"]["title"] = dict(text="Lap", font=dict(size=10, color=DIM))
+                _hr_layout["xaxis"]["dtick"] = 1
+                _hr_layout["height"] = 300
+                _hr_layout["legend"] = dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+                    font=dict(color=DIM, family=FONT_H, size=10),
+                )
+                fig_hr.update_layout(**_hr_layout)
+                st.plotly_chart(fig_hr, use_container_width=True)
+
+    divider()
+
+    # ── vs. Your Averages ──
+    section_label("vs. Your Averages")
+
+    _avg_dist = df["distance_km"].mean()
+    _avg_pace = df["pace_min_km"].mean()
+    _avg_dur = df["duration_min"].mean()
+    _avg_hr_all = df["avg_hr"].dropna().mean()
+
+    def _delta_str(val, avg, fmt=".1f", invert=False):
+        d = val - avg
+        sign = "+" if d > 0 else ""
+        color = SECONDARY if ((d < 0) if invert else (d > 0)) else CC["hr1"]
+        return f'<span style="color:{color};font-size:0.8rem;">{sign}{d:{fmt}}</span>'
+
+    _apm = int(_avg_pace)
+    _aps = int((_avg_pace % 1) * 60)
+
+    _cmp_items = [
+        ("Distance", f"{run['distance_km']:.2f}", "km",
+         _delta_str(run["distance_km"], _avg_dist), f"avg {_avg_dist:.1f}"),
+        ("Pace", f"{_run_pace_m}:{_run_pace_s:02d}", "/km",
+         _delta_str(run["pace_min_km"], _avg_pace, ".2f", invert=True),
+         f"avg {_apm}:{_aps:02d}"),
+        ("Duration", f"{_run_dur_m}:{_run_dur_s:02d}", "min",
+         _delta_str(run["duration_min"], _avg_dur), f"avg {_avg_dur:.0f} min"),
+    ]
+
+    if pd.notna(run["avg_hr"]) and pd.notna(_avg_hr_all):
+        _cmp_items.append(
+            ("Avg HR", f"{run['avg_hr']:.0f}", "bpm",
+             _delta_str(run["avg_hr"], _avg_hr_all, ".0f"),
+             f"avg {_avg_hr_all:.0f}"),
+        )
+
+    _cmp_html = f'<div class="metric-grid" style="grid-template-columns: repeat({len(_cmp_items)}, 1fr);">'
+    for _lbl, _val, _unt, _delta, _avg_note in _cmp_items:
+        _cmp_html += (
+            f'<div class="m-card">'
+            f'<div class="m-label">{_lbl}</div>'
+            f'<div class="m-val">{_val}<span class="m-unit">{_unt}</span></div>'
+            f'<div style="margin-top:0.3rem;">{_delta}</div>'
+            f'<div style="font-size:0.65rem;color:{MUTED};margin-top:0.1rem;">{_avg_note}</div>'
+            f'</div>'
+        )
+    _cmp_html += '</div>'
+    st.markdown(_cmp_html, unsafe_allow_html=True)
+
+    divider()
+
+    # ── Route Map (TODO) ──
+    section_label("Route Map")
+    st.markdown(
+        f'<div class="m-card" style="text-align:center;padding:2rem 1rem;">'
+        f'<div class="m-label">Coming Soon</div>'
+        f'<div style="font-size:0.85rem;color:{DIM};margin-top:0.5rem;">'
+        f'GPS route visualization will appear here.<br>'
+        f'Requires polyline data from Garmin activity details API.'
+        f'</div></div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Summary ───────────────────────────────────────────
 
@@ -1596,7 +1793,7 @@ with tab_compare:
 
 with tab_zones:
     # Load lap-level data and filter to same time range as activities
-    laps_df = load_laps_dataframe()
+    laps_df = load_laps()
 
     if laps_df.empty:
         st.warning("No lap data found. Run `python pull_activities.py --laps` to pull lap data.")
