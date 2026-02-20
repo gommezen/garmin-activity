@@ -1,8 +1,10 @@
 # Garmin Activity Puller
 
+[![Version](https://img.shields.io/badge/Release-v1.1.0-blue)](https://github.com/gommezen/garmin-activity/releases)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Plotly](https://img.shields.io/badge/Plotly-Charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com)
+[![Pandas](https://img.shields.io/badge/Pandas-Data-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org)
 [![SQLite](https://img.shields.io/badge/SQLite-Storage-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Garmin](https://img.shields.io/badge/Garmin-Connect-007CC3?logo=garmin&logoColor=white)](https://connect.garmin.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
