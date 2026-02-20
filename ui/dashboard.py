@@ -1269,10 +1269,10 @@ with tab_trends:
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(make_chart(filtered_df, "start_time", "distance_km",
-                                       "Distance", "km", CC["dist"]), use_container_width=True)
+                                       "Distance", "km", CC["dist"]), width="stretch")
         with col2:
             st.plotly_chart(make_chart(filtered_df, "start_time", "pace_min_km",
-                                       "Pace", "min/km", CC["pace"]), use_container_width=True)
+                                       "Pace", "min/km", CC["pace"]), width="stretch")
 
         # Weekly mileage bar chart
         weekly_km = (filtered_df.set_index("start_time")
@@ -1299,28 +1299,28 @@ with tab_trends:
         layout_wk["height"] = 400
         layout_wk["margin"] = dict(l=50, r=20, t=120, b=30)
         fig_wk.update_layout(**layout_wk)
-        st.plotly_chart(fig_wk, use_container_width=True)
+        st.plotly_chart(fig_wk, width="stretch")
 
     with t2:
         st.plotly_chart(make_dual_chart(filtered_df, "start_time", "avg_hr", "max_hr",
                                         "Heart Rate", "Avg HR", "Max HR", "bpm",
-                                        CC["hr1"], CC["hr2"]), use_container_width=True)
+                                        CC["hr1"], CC["hr2"]), width="stretch")
     with t3:
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(make_chart(filtered_df, "start_time", "duration_min",
-                                       "Duration", "min", CC["dur"]), use_container_width=True)
+                                       "Duration", "min", CC["dur"]), width="stretch")
         with col2:
             st.plotly_chart(make_chart(filtered_df, "start_time", "calories",
-                                       "Calories", "kcal", CC["cal"]), use_container_width=True)
+                                       "Calories", "kcal", CC["cal"]), width="stretch")
     with t4:
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(make_chart(filtered_df, "start_time", "cadence",
-                                       "Cadence", "spm", CC["cad"]), use_container_width=True)
+                                       "Cadence", "spm", CC["cad"]), width="stretch")
         with col2:
             st.plotly_chart(make_chart(filtered_df, "start_time", "elevation_gain",
-                                       "Elevation Gain", "m", CC["elev"]), use_container_width=True)
+                                       "Elevation Gain", "m", CC["elev"]), width="stretch")
 
 # ── Explorer ─────────────────────────────────────────
 
@@ -1412,28 +1412,273 @@ with tab_explorer:
             _rl_fastest = _rl["pace_min_km"].min()
             _rl_slowest = _rl["pace_min_km"].max()
 
-            fig_rl = go.Figure()
-            fig_rl.add_trace(go.Bar(
-                y=_rl_labels, x=_rl["pace_min_km"].values, orientation="h",
-                marker=dict(color=_rl_bar_colors, line=dict(color=BG, width=0.5)),
-                text=_rl_paces, textposition="inside", insidetextanchor="middle",
-                textfont=dict(family=FONT_B, size=11, color=TXT),
-                hovertemplate="<b>%{y}</b><br>Pace: %{text}<extra></extra>",
-            ))
-            _rl_layout = _layout("", "min/km")
-            _rl_layout["yaxis"] = dict(autorange="reversed",
-                                       tickfont=dict(color=TXT, size=10, family=FONT_B),
-                                       gridcolor=GRID, linecolor=BORDER)
-            _rl_layout["xaxis"]["title"] = dict(text="min/km", font=dict(size=10, color=DIM))
-            _rl_pad = 0.15
-            if _rl_fastest == _rl_slowest:
-                _rl_layout["xaxis"]["range"] = [_rl_fastest + 0.5, _rl_fastest - 0.5]
+            # ── Horizontal Lollipop Lap Chart ──
+            _rl_avg_pace = _rl["pace_min_km"].mean()
+            _avg_fmt = f"{int(_rl_avg_pace)}:{int((_rl_avg_pace % 1) * 60):02d}"
+            _pace_vals = _rl["pace_min_km"].values
+            n_laps = len(_rl)
+            _rl_reset = _rl.reset_index(drop=True)
+
+            # Amplified baseline: zoom into the pace range so
+            # small differences become clearly visible
+            _pace_range = _rl_slowest - _rl_fastest
+            if _pace_range < 0.25:
+                _buf = 0.20
+            elif _pace_range < 0.75:
+                _buf = max(0.15, _pace_range * 0.20)
             else:
-                _rl_layout["xaxis"]["range"] = [_rl_slowest + _rl_pad, _rl_fastest - _rl_pad]
-            _rl_layout["height"] = max(200, len(_rl) * 35 + 60)
-            _rl_layout["margin"] = dict(l=110, r=30, t=20, b=35)
-            fig_rl.update_layout(**_rl_layout)
-            st.plotly_chart(fig_rl, use_container_width=True)
+                _buf = max(0.30, _pace_range * 0.25)
+            # Reversed axis: slow (high pace) on left, fast (low pace) on right
+            # so faster laps have longer stems = more visual prominence
+            _x_slow = _rl_slowest + _buf           # left edge (baseline)
+            _x_fast = _rl_fastest - _buf * 1.8     # right edge (room for labels)
+
+            # Adaptive row sizing
+            if n_laps <= 8:
+                _row_h, _dot_sz = 44, 10
+            elif n_laps <= 14:
+                _row_h, _dot_sz = 32, 8
+            elif n_laps <= 19:
+                _row_h, _dot_sz = 26, 7
+            else:
+                _row_h, _dot_sz = 22, 6
+            _chart_h = min(650, max(220, n_laps * _row_h + 80))
+
+            # ── Selection state ──
+            _sel_key = f"rl_sel_{run['activity_id']}"
+            _sel_idx = st.session_state.get(_sel_key, None)
+
+            # Find fastest / slowest lap indices
+            _fastest_i = int(np.argmin(_pace_vals))
+            _slowest_i = int(np.argmax(_pace_vals))
+
+            # Prepare per-lap visual properties
+            _dot_colors = list(_rl_bar_colors)
+            _dot_sizes = [_dot_sz] * n_laps
+            _glow_colors = [BG] * n_laps
+            _glow_widths = [1.0] * n_laps
+            _stem_alpha = [0.85] * n_laps
+
+            if _sel_idx is not None and 0 <= _sel_idx < n_laps:
+                _dot_sizes[_sel_idx] = _dot_sz + 4
+                _glow_colors[_sel_idx] = PRIMARY
+                _glow_widths[_sel_idx] = 3
+                for j in range(n_laps):
+                    if j != _sel_idx:
+                        c = _rl_bar_colors[j]
+                        cr, cg, cb = int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)
+                        _dot_colors[j] = f"rgba({cr},{cg},{cb},0.30)"
+                        _stem_alpha[j] = 0.20
+
+            fig_rl = go.Figure()
+
+            # ── Zebra stripes for row tracking ──
+            for i in range(0, n_laps, 2):
+                fig_rl.add_hrect(
+                    y0=i - 0.45, y1=i + 0.45,
+                    fillcolor="rgba(255,255,255,0.02)",
+                    line_width=0, layer="below",
+                )
+
+            # ── Fastest lap row highlight ──
+            _sr, _sg, _sb = int(SECONDARY[1:3], 16), int(SECONDARY[3:5], 16), int(SECONDARY[5:7], 16)
+            fig_rl.add_hrect(
+                y0=_fastest_i - 0.45, y1=_fastest_i + 0.45,
+                fillcolor=f"rgba({_sr},{_sg},{_sb},0.06)",
+                line_width=0, layer="below",
+            )
+
+            # ── Selected lap row highlight ──
+            if _sel_idx is not None and 0 <= _sel_idx < n_laps:
+                _pr, _pg, _pb = int(PRIMARY[1:3], 16), int(PRIMARY[3:5], 16), int(PRIMARY[5:7], 16)
+                fig_rl.add_hrect(
+                    y0=_sel_idx - 0.48, y1=_sel_idx + 0.48,
+                    fillcolor=f"rgba({_pr},{_pg},{_pb},0.10)",
+                    line_width=0, layer="below",
+                )
+
+            # ── Stems: one trace per lap for accurate per-lap dimming ──
+            _dots_trace_idx = 0
+            for i in range(n_laps):
+                _c = _rl_bar_colors[i]
+                _cr, _cg, _cb = int(_c[1:3], 16), int(_c[3:5], 16), int(_c[5:7], 16)
+                _a = _stem_alpha[i]
+                fig_rl.add_trace(go.Scatter(
+                    x=[_x_slow, _pace_vals[i]], y=[i, i], mode="lines",
+                    line=dict(color=f"rgba({_cr},{_cg},{_cb},{_a})", width=2.5),
+                    hoverinfo="skip", showlegend=False,
+                ))
+                _dots_trace_idx += 1
+
+            # ── Pace trend line (dotted, connecting laps in order) ──
+            fig_rl.add_trace(go.Scatter(
+                x=_pace_vals.tolist(),
+                y=list(range(n_laps)),
+                mode="lines",
+                line=dict(color=PRIMARY, width=1, dash="dot"),
+                opacity=0.25 if n_laps <= 19 else 0,
+                hoverinfo="skip", showlegend=False,
+            ))
+            _dots_trace_idx += 1
+
+            # ── Dots (main interactive trace) ──
+            _hover_texts = []
+            for i, row in _rl_reset.iterrows():
+                _hr_str = f"<br>Avg HR: {row['avg_hr']:.0f} bpm" if pd.notna(row.get("avg_hr")) else ""
+                _cad_str = f"<br>Cadence: {row['cadence']:.0f} spm" if pd.notna(row.get("cadence")) else ""
+                _dur_m = row.get("duration_sec", 0)
+                _dur_str = f"<br>Time: {int(_dur_m // 60)}:{int(_dur_m % 60):02d}" if pd.notna(_dur_m) and _dur_m > 0 else ""
+                _zone_str = f"<br>Zone: {row['pace_zone']}" if pd.notna(row.get("pace_zone")) else ""
+                _hover_texts.append(
+                    f"<b>Lap {i+1}</b> ({row['distance_km']:.2f} km)<br>"
+                    f"Pace: {_rl_paces[i]} /km{_zone_str}{_dur_str}{_hr_str}{_cad_str}<extra></extra>"
+                )
+
+            fig_rl.add_trace(go.Scatter(
+                x=_pace_vals.tolist(),
+                y=list(range(n_laps)),
+                mode="markers",
+                marker=dict(
+                    size=_dot_sizes,
+                    color=_dot_colors,
+                    symbol=MARKER,
+                    line=dict(width=_glow_widths, color=_glow_colors),
+                ),
+                hovertemplate=_hover_texts,
+                showlegend=False,
+            ))
+
+            # ── Average pace reference line ──
+            fig_rl.add_vline(
+                x=_rl_avg_pace,
+                line_width=1, line_dash="dash", line_color=DIM,
+                annotation_text=f"avg {_avg_fmt}",
+                annotation_position="top",
+                annotation_font=dict(color=DIM, size=9, family=FONT_B),
+            )
+
+            # ── Pace labels to the right of each dot ──
+            if n_laps <= 19:
+                _lbl_colors = []
+                for i in range(n_laps):
+                    if _sel_idx is not None and i == _sel_idx:
+                        _lbl_colors.append(PRIMARY)
+                    elif i == _fastest_i:
+                        _lbl_colors.append(SECONDARY)
+                    else:
+                        _lbl_colors.append(DIM)
+
+                for i in range(n_laps):
+                    fig_rl.add_annotation(
+                        x=_pace_vals[i], y=i,
+                        text=f" <b>{_rl_paces[i]}</b>",
+                        font=dict(family=FONT_B, size=10, color=_lbl_colors[i]),
+                        showarrow=False, xanchor="left", xshift=10,
+                    )
+
+            # ── Fastest / slowest markers ──
+            fig_rl.add_annotation(
+                x=_pace_vals[_fastest_i], y=_fastest_i,
+                text="▲",
+                font=dict(color=SECONDARY, size=9),
+                showarrow=False, yshift=14,
+            )
+            if _fastest_i != _slowest_i:
+                fig_rl.add_annotation(
+                    x=_pace_vals[_slowest_i], y=_slowest_i,
+                    text="▼",
+                    font=dict(color=MUTED, size=9),
+                    showarrow=False, yshift=-14,
+                )
+
+            # ── Layout ──
+            fig_rl.update_layout(
+                xaxis=dict(
+                    range=[_x_slow, _x_fast],  # reversed: slow left, fast right
+                    visible=False,
+                    fixedrange=True,
+                ),
+                yaxis=dict(
+                    tickmode="array",
+                    tickvals=list(range(n_laps)),
+                    ticktext=[f"Lap {i+1}" for i in range(n_laps)],
+                    tickfont=dict(family=FONT_H, size=10, color=DIM),
+                    autorange="reversed",
+                    gridcolor="rgba(0,0,0,0)",
+                    linecolor="rgba(0,0,0,0)",
+                    fixedrange=True,
+                ),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor=PLOT_BG,
+                font=dict(family=FONT_B, color=DIM),
+                height=_chart_h,
+                margin=dict(l=60, r=80, t=30, b=20),
+                showlegend=False,
+                hovermode="closest",
+                hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
+                                font=dict(color=TXT, family=FONT_B, size=12)),
+                dragmode=False,
+            )
+
+            _rl_config = {
+                "displayModeBar": False,
+                "displaylogo": False,
+                "scrollZoom": False,
+            }
+            _chart_key = f"rl_chart_{run['activity_id']}_{_sel_idx}"
+            event = st.plotly_chart(fig_rl, width="stretch", config=_rl_config,
+                                    on_select="rerun", selection_mode=["points"],
+                                    key=_chart_key)
+
+            # Process click — detect which lap dot was clicked
+            _clicked_idx = None
+            if event and hasattr(event, "selection") and event.selection:
+                _pts = getattr(event.selection, "points", [])
+                for _pt in _pts:
+                    if _pt.get("curve_number") == _dots_trace_idx:
+                        _clicked_idx = _pt.get("point_number")
+                        break
+
+            if _clicked_idx is not None:
+                _new_val = None if _clicked_idx == _sel_idx else _clicked_idx
+                if _new_val != _sel_idx:
+                    st.session_state[_sel_key] = _new_val
+                    st.rerun()
+
+            # ── Detail card for selected lap ──
+            if _sel_idx is not None and 0 <= _sel_idx < n_laps:
+                _s = _rl_reset.iloc[_sel_idx]
+                _detail_items = [
+                    ("Distance", f"{_s['distance_km']:.2f}", "km"),
+                    ("Pace", _rl_paces[_sel_idx], "/km"),
+                ]
+                _dur_s = _s.get("duration_sec", 0)
+                if pd.notna(_dur_s) and _dur_s > 0:
+                    _detail_items.append(("Time", f"{int(_dur_s // 60)}:{int(_dur_s % 60):02d}", ""))
+                if pd.notna(_s.get("avg_hr")):
+                    _detail_items.append(("Avg HR", f"{_s['avg_hr']:.0f}", "bpm"))
+                if pd.notna(_s.get("max_hr")):
+                    _detail_items.append(("Max HR", f"{_s['max_hr']:.0f}", "bpm"))
+                if pd.notna(_s.get("cadence")):
+                    _detail_items.append(("Cadence", f"{_s['cadence']:.0f}", "spm"))
+                _zone_val = _s.get("pace_zone")
+                if pd.notna(_zone_val):
+                    _zc = _zone_cmap.get(_zone_val, DIM)
+                    _detail_items.append(("Zone", str(_zone_val), ""))
+
+                _ncols = len(_detail_items)
+                _det_html = f'<div class="metric-grid" style="grid-template-columns: repeat({_ncols}, 1fr);">'
+                for _lbl, _val, _unit in _detail_items:
+                    _color = _zc if _lbl == "Zone" else PRIMARY
+                    _det_html += (
+                        f'<div class="m-card">'
+                        f'<div class="m-label">{_lbl}</div>'
+                        f'<div class="m-val" style="color:{_color}">{_val}'
+                        f'<span class="m-unit"> {_unit}</span></div>'
+                        f'</div>'
+                    )
+                _det_html += '</div>'
+                st.markdown(_det_html, unsafe_allow_html=True)
 
             # ── Pace Zones for This Run ──
             divider()
@@ -1497,7 +1742,7 @@ with tab_explorer:
                     font=dict(color=DIM, family=FONT_H, size=10),
                 )
                 fig_hr.update_layout(**_hr_layout)
-                st.plotly_chart(fig_hr, use_container_width=True)
+                st.plotly_chart(fig_hr, width="stretch")
 
     divider()
 
@@ -1674,7 +1919,7 @@ with tab_summary:
         layout_mp["height"] = 320
         layout_mp["xaxis"]["tickangle"] = 0
         fig_mp.update_layout(**layout_mp)
-        st.plotly_chart(fig_mp, use_container_width=True)
+        st.plotly_chart(fig_mp, width="stretch")
 
         divider()
 
@@ -1745,17 +1990,17 @@ with tab_compare:
             st.plotly_chart(
                 neo_radar_chart(stats_a, stats_b,
                                 f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
-                use_container_width=True)
+                width="stretch")
         elif theme == "Blade Runner 2049":
             st.plotly_chart(
                 br_radar_chart(stats_a, stats_b,
                                f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
-                use_container_width=True)
+                width="stretch")
         else:
             st.plotly_chart(
                 deco_radar_chart(stats_a, stats_b,
                                  f"A: {a_start}\u2192{a_end}", f"B: {b_start}\u2192{b_end}"),
-                use_container_width=True)
+                width="stretch")
 
         divider()
 
@@ -1853,7 +2098,7 @@ with tab_zones:
                 hoverlabel=dict(bgcolor=SURFACE, bordercolor=PRIMARY,
                                 font=dict(color=TXT, family=FONT_B, size=12)),
             )
-            st.plotly_chart(fig_donut, use_container_width=True)
+            st.plotly_chart(fig_donut, width="stretch")
 
         with col_bar:
             fig_bar = go.Figure()
@@ -1870,7 +2115,7 @@ with tab_zones:
             layout_bar["xaxis"]["title"] = dict(text="laps", font=dict(size=11, color=DIM))
             layout_bar["height"] = 380
             fig_bar.update_layout(**layout_bar)
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width="stretch")
 
         divider()
 
@@ -1896,7 +2141,7 @@ with tab_zones:
         layout_trend["height"] = 400
         layout_trend["margin"] = dict(l=50, r=20, t=60, b=30)
         fig_trend.update_layout(**layout_trend)
-        st.plotly_chart(fig_trend, use_container_width=True)
+        st.plotly_chart(fig_trend, width="stretch")
 
 # ── Theme Selector (bottom of page) ─────────────────
 divider()

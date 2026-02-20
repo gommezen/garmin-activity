@@ -57,8 +57,14 @@ MANIFEST
 #-----------------------#
 CLAUDE.md
 todo.md
-.claude
+.claude/
 design_thoughts/
+ui/design choices/
+
+#-----------------------#
+# Auth tokens            #
+#-----------------------#
+.garmin_tokens/
 
 #-----------------------#
 # VS Code               #
