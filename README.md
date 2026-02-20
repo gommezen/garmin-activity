@@ -5,6 +5,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Plotly](https://img.shields.io/badge/Plotly-Charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com)
 [![Pandas](https://img.shields.io/badge/Pandas-Data-150458?logo=pandas&logoColor=white)](https://pandas.pydata.org)
+[![NumPy](https://img.shields.io/badge/NumPy-Compute-013243?logo=numpy&logoColor=white)](https://numpy.org)
 [![SQLite](https://img.shields.io/badge/SQLite-Storage-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Garmin](https://img.shields.io/badge/Garmin-Connect-007CC3?logo=garmin&logoColor=white)](https://connect.garmin.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -44,13 +45,15 @@ A Python CLI that pulls your running activities from Garmin Connect, stores them
 
 ## Setup
 
+**Requires Python 3.10+**
+
 1. **Install dependencies**
 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Add your credentials** — copy `.env.example` to `.env` and fill in your Garmin email and password.
+2. **Add your credentials** — copy `.env.example` to `.env` and fill in your Garmin email and password. If your account has MFA enabled, you'll be prompted to enter the code on first login — tokens are cached for subsequent runs.
 
 ## Usage
 
@@ -64,6 +67,9 @@ python pull_activities.py running --days 90 --limit 10
 # Export to JSON or CSV
 python pull_activities.py running --save
 python pull_activities.py running --csv
+
+# Pull lap/split data for activities missing laps
+python pull_activities.py --laps
 
 # Show weekly/monthly summary stats and PRs
 python pull_activities.py running --stats
@@ -88,6 +94,7 @@ jupyter notebook notebooks/analysis.ipynb
 
 ```
 src/            Source modules (client, db, display, export, stats)
+tests/          Test suite (pytest)
 ui/             Streamlit dashboard with multi-theme support
 notebooks/      Jupyter analysis notebook
 data/           SQLite database and auth tokens (gitignored)

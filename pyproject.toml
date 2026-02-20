@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "garmin-activity-puller"
+version = "1.1.0"
+description = "Pull running activities from Garmin Connect, store in SQLite, and visualize with a themed Streamlit dashboard"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "gommezen" },
+]
+keywords = ["garmin", "running", "fitness", "dashboard", "streamlit"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "garminconnect>=0.2.38",
+    "python-dotenv>=1.0.1",
+    "pandas>=2.3",
+    "numpy>=2.4",
+    "streamlit>=1.54",
+    "plotly>=5.22",
+]
+
+[project.optional-dependencies]
+dev = [
+    "matplotlib>=3.10",
+    "jupyter>=1.1",
+    "pytest>=8.0",
+]
+
+[project.scripts]
+garmin-pull = "pull_activities:main"
+
+[project.urls]
+Homepage = "https://github.com/gommezen/garmin-activity"
+Repository = "https://github.com/gommezen/garmin-activity"
+Issues = "https://github.com/gommezen/garmin-activity/issues"
