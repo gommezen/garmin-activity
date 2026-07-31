@@ -1,4 +1,6 @@
-garminconnect>=0.2.38
+# Pinned below 0.3: garminconnect 0.3.x replaced the garth-based auth backend and
+# dropped Garmin.garth, which src/client.py uses for token load/dump.
+garminconnect>=0.2.38,<0.3
 python-dotenv>=1.0.1
 pandas>=2.3
 numpy>=2.4
