@@ -200,20 +200,35 @@ runs already in the database predate the app and are history, not streak.
 
 ## Rank (beat 08)
 
-Derived, never stored. Thresholds by lifetime sessions:
+Derived, never stored. **A grade is a combination of three dimensions — consistency,
+speed, and distance — and all three must be met.** You cannot buy a grade with volume
+alone, and a fast runner who never goes long stays where they are.
 
-| Grade | Sessions |
-|---|---|
-| Shodan · first | 20 |
-| Nidan · second | 50 |
-| Sandan · third | 100 |
-| Yondan · fourth | 160 |
-| Godan · fifth | 230 |
-| Rokudan · sixth | 310 |
+| Grade | Sessions | Best 5 km pace | Longest run |
+|---|---|---|---|
+| Shodan · first | 20 | — | 5 km |
+| Nidan · second | 50 | 6:30 /km | 8 km |
+| Sandan · third | 100 | 6:00 /km | 12 km |
+| Yondan · fourth | 160 | 5:40 /km | 16 km |
+| Godan · fifth | 230 | 5:20 /km | 21.1 km |
+| Rokudan · sixth | 310 | 5:00 /km | 30 km |
 
-"Since <date>" = the date of the Nth activity that crossed the threshold. With 39
-activities today you open at **first grade (shodan), 11 sessions short of second** —
-honest, and the ladder is visible from the start.
+Grade = the highest row where **all three** columns are satisfied. The rank screen
+names the blocking dimension ("your distance holds you at second grade") — which gives
+Kurosawa something specific to push on, and turns rank into direction rather than a
+score.
+
+**Mixed runs count.** Every stored activity counts toward sessions regardless of
+intensity or session type, and the speed and distance columns are evaluated as
+best-efforts across all runs — an interval session's fast 5 km split counts, a
+long run inside a mixed session counts.
+
+> **Open question — cross-training.** If "mixed" is also meant to include non-running
+> activities (cycling, walking, hiking), that is a schema change: `activities` has no
+> sport-type column today, so the puller would need to store it and history would need
+> a re-pull to backfill. Resolve before Phase 3; it does not affect Phase 1.
+
+"Since <date>" = the date the last unmet requirement was satisfied.
 
 ## Kurosawa's voice
 
@@ -292,8 +307,8 @@ data path.
   < 14 days history. Assert session type, distance, band, HR cap, evidence rows.
 - **`src/verdict.py`** — PR run, load spike, recovery run, in/out of band,
   first-run-after-gap.
-- **`src/rank.py`** — threshold boundaries, grade-since dates, streak across
-  prescribed rest days.
+- **`src/rank.py`** — streak across prescribed rest days (Phase 1); composite grade
+  boundaries, blocking-dimension detection, and grade-since dates (Phase 3).
 - **API** — mocked Claude streaming canned tokens; SSE event order, replay path makes
   no second LLM call, 409s on repeat feel/follow-up.
 - **Persona** — not unit-tested; iterated by taste, correlated via `prompt_version`.
