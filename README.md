@@ -84,6 +84,27 @@ python pull_activities.py --list-sports
 streamlit run ui/dashboard.py
 ```
 
+## Shindō (the sensei app)
+
+A running dojo with a master in it — Kurosawa briefs you before every run and
+debriefs you after, from your own Garmin history.
+
+```bash
+# One-time: install Python and JS dependencies
+VIRTUAL_ENV=$PWD/.venv uv pip install -r requirements.txt
+npm --prefix app/web install
+
+# Add ANTHROPIC_API_KEY to .env, then:
+./run-shindo.sh
+```
+
+API on :8000, web on :5173. Every screen works without Claude — his voice
+degrades to a fixed line while the numbers keep rendering. If port 8000 is
+already taken by another project, edit the `--port` flag in `run-shindo.sh`
+and the matching proxy target in `app/web/vite.config.js`.
+
+See `docs/superpowers/specs/2026-07-31-shindo-design.md` for the full design.
+
 ## Notebook
 
 ```bash
@@ -95,6 +116,7 @@ jupyter notebook notebooks/analysis.ipynb
 ```
 src/            Source modules (client, db, display, export, stats)
 tests/          Test suite (pytest)
+app/            Shindō sensei app — FastAPI backend (app/api) and React web UI (app/web)
 ui/             Streamlit dashboard with multi-theme support
 notebooks/      Jupyter analysis notebook
 data/           SQLite database and auth tokens (gitignored)
