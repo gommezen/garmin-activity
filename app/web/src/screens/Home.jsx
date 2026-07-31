@@ -29,8 +29,12 @@ export default function Home() {
     <p className="font-sans text-stone">…</p></Dojo>
 
   const p = data.prescription
-  const maxKm = Math.max(...data.last_7_days.map((d) => d.km), 1)
+  const maxKm = Math.max(...data.last_7_days.map((day) => day.km), 1)
   const isRest = p.session_type === 'rest'
+
+  const [y, m, d] = data.date.split('-').map(Number)
+  const weekdayIdx = new Date(y, m - 1, d).getDay()      // local midnight, not UTC
+  const weekday = DAYS[weekdayIdx === 0 ? 6 : weekdayIdx - 1]
 
   return (
     <Dojo rail={
@@ -45,16 +49,21 @@ export default function Home() {
       <div className="flex items-baseline gap-3">
         <span className="font-sans text-[10px] font-semibold uppercase
                          tracking-[.16em] text-stone">
-          {DAYS[new Date(data.date).getDay() === 0 ? 6 : new Date(data.date).getDay() - 1]}
-          {' · '}Week {p.week_n}
+          {weekday}
+          {' · '}Week <span className="font-mono">{p.week_n}</span>
         </span>
         <span className="ml-auto font-mono text-[11px] text-stone-2">
           {data.streak}-DAY STREAK
         </span>
       </div>
 
-      <h1 className="mt-2 font-serif text-3xl capitalize">
-        {isRest ? 'Rest' : `${p.session_type} ${p.distance_km} km`}
+      <h1 className="mt-2 font-serif text-3xl">
+        {isRest ? 'Rest' : (
+          <>
+            <span className="capitalize">{p.session_type}</span>{' '}
+            <span className="font-mono">{p.distance_km}</span> km
+          </>
+        )}
       </h1>
 
       <div className="mt-6 flex gap-3">
@@ -69,13 +78,11 @@ export default function Home() {
         <div className="font-sans text-[10px] font-semibold uppercase
                         tracking-[.14em] text-stone">Last 7 days</div>
         <div className="mt-3 flex h-16 items-end gap-2">
-          {data.last_7_days.map((d) => (
-            <div key={d.date} className="flex-1 rounded-t-sm"
-              title={`${d.date} · ${d.km} km`}
-              style={{
-                height: `${Math.max((d.km / maxKm) * 100, 3)}%`,
-                background: d.km > 0 ? 'var(--gold)' : 'var(--stone-3)',
-              }} />
+          {data.last_7_days.map((day) => (
+            <div key={day.date}
+              className={`flex-1 rounded-t-sm ${day.km > 0 ? 'bg-gold' : 'bg-stone-3'}`}
+              title={`${day.date} · ${day.km} km`}
+              style={{ height: `${Math.max((day.km / maxKm) * 100, 3)}%` }} />
           ))}
         </div>
       </div>
