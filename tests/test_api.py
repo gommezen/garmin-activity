@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src import db, store
+from app.api.main import FALLBACK_LINE
 
 
 @pytest.fixture(autouse=True)
@@ -126,7 +127,9 @@ class TestBrief:
         assert events[-1][0] == "done"
 
     def test_second_call_replays_without_calling_claude(self, client, seeded, monkeypatch):
-        client.get("/api/brief")
+        first = _events(client.get("/api/brief"))
+        first_text = "".join(p["t"] for n, p in first if n == "token")
+        assert first_text and first_text != FALLBACK_LINE
 
         async def explode(*a, **k):
             raise AssertionError("Claude called on replay")
@@ -135,9 +138,11 @@ class TestBrief:
         from app.api import main as api_main
         monkeypatch.setattr(api_main, "stream_voice", explode)
 
-        events = _events(client.get("/api/brief"))
-        assert events[-1][0] == "done"
-        assert "".join(p["t"] for n, p in events if n == "token")
+        second = _events(client.get("/api/brief"))
+        second_text = "".join(p["t"] for n, p in second if n == "token")
+        assert second_text == first_text        # replayed verbatim from storage
+        assert second_text != FALLBACK_LINE     # so it cannot have silently fallen back
+        assert second[-1][0] == "done"
 
 
 class TestDebrief:
