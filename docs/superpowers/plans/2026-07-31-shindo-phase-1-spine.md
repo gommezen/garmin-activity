@@ -733,7 +733,7 @@ def laps_for(laps_df: pd.DataFrame, activity_id: int) -> list[dict]:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_queries.py -v`
-Expected: PASS (16 tests)
+Expected: PASS (15 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -2284,7 +2284,7 @@ async def reply(debrief_id: int, body: ReplyIn):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_api.py -v`
-Expected: PASS (16 tests)
+Expected: PASS (15 tests)
 
 - [ ] **Step 5: Run the whole suite**
 
