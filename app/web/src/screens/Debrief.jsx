@@ -26,6 +26,7 @@ export default function Debrief() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [asked, setAsked] = useState(false)
+  const [asking, setAsking] = useState(false)
   const started = useRef(false)
 
   useEffect(() => {
@@ -57,7 +58,8 @@ export default function Debrief() {
   }
 
   async function ask() {
-    if (!question.trim() || asked) return
+    if (!question.trim() || asked || asking) return
+    setAsking(true)
     try {
       await streamSSE(`/api/debrief/${debriefId}/reply`, {
         method: 'POST',
@@ -68,7 +70,9 @@ export default function Debrief() {
       })
       setAsked(true)
     } catch {
-      // rejected (e.g. follow-up already used) — leave the control visible
+      setAnswer('')
+    } finally {
+      setAsking(false)
     }
   }
 
@@ -155,7 +159,7 @@ export default function Debrief() {
       {feel && <p className="mt-6 font-sans text-[13px] text-stone-2">
         Logged: <span className="text-ink">{feel}</span>. It shapes tomorrow's brief.</p>}
 
-      {debriefId && !asked && (
+      {debriefId && !asked && !asking && (
         <div className="mt-6 flex gap-2">
           <input value={question} onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && ask()}
