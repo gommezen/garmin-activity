@@ -70,7 +70,10 @@ def median_easy_pace_s(df: pd.DataFrame, today: date, days: int = 28) -> float |
 
 
 def median_easy_hr(df: pd.DataFrame, today: date, days: int = 28) -> float | None:
-    easy = _easy_runs(df, today, days).dropna(subset=["avg_hr"])
+    easy = _easy_runs(df, today, days)
+    if easy.empty:
+        return None
+    easy = easy.dropna(subset=["avg_hr"])
     if easy.empty:
         return None
     return float(easy["avg_hr"].median())

@@ -69,6 +69,9 @@ class TestPaceAndHr:
         rows = [(2, 6, 36, 140), (4, 6, 36, 144), (6, 6, 36, 142)]
         assert queries.median_easy_hr(_df(rows), TODAY) == pytest.approx(142, abs=2)
 
+    def test_median_easy_hr_none_without_data(self):
+        assert queries.median_easy_hr(_df([]), TODAY) is None
+
 
 class TestStreaksAndGaps:
     def test_consecutive_run_days(self):
