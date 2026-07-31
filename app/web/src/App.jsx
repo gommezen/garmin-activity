@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import Dojo from './components/Dojo.jsx'
 import RailMedia from './components/RailMedia.jsx'
+import Home from './screens/Home.jsx'
 
 function Stub({ name, stem }) {
   return (
@@ -17,7 +18,7 @@ function Stub({ name, stem }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Stub name="Home" stem="home-sensei" />} />
+      <Route path="/" element={<Home />} />
       <Route path="/session" element={<Stub name="Session" stem="session-route" />} />
       <Route path="/brief" element={<Stub name="Brief" stem="brief-sensei" />} />
       <Route path="/debrief" element={<Stub name="Debrief" stem="debrief-runner" />} />
