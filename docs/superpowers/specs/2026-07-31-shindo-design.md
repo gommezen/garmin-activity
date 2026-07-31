@@ -157,10 +157,17 @@ Output — `prescription.json`:
 
 1. `rest` — today not in available days · OR ACWR > 1.4 · OR 3 consecutive run-days ·
    OR last feel was `wrecked`
-2. `long` — today is the week's designated long day (latest available day) and no long
-   run yet this week and **base established**
-3. `tempo` — goal is **time-based**, base established, none yet this week (max 1/week)
+2. `long` — today is the week's designated long day (latest available day), **base
+   established**, and no long run in the last 7 days
+3. `tempo` — goal is **time-based**, base established, and no hard effort in the last
+   7 days
 4. `easy` — otherwise
+
+**Spacing is a rolling 7-day window, not a calendar week.** A Monday-anchored week
+collapses to nothing *on* a Monday, so a Sunday tempo would be invisible and rules 2
+and 3 would stack two hard days back to back — the failure they exist to prevent.
+Weekly *volume* (`week.km_so_far`, `target_km`) stays calendar-week: that is a display
+of the week's total against a weekly target, not a spacing decision.
 
 **Definitions:**
 - **base established** = ≥ 2 runs per week for 3 consecutive weeks.

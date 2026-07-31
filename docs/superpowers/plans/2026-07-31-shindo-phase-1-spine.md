@@ -1190,6 +1190,8 @@ Prescription shape (matches the spec):
 
 Rules, first match wins: `rest` → `long` → `tempo` → `easy`. Time-based goals are `break_45` and any `other` carrying a target time; `first_10k` and `return_to_running` never get tempo.
 
+**Spacing windows are rolling 7 days, not calendar weeks.** "One hard session per week" and "one long run per week" look back 7 days from today. A Monday-anchored calendar week collapses to nothing *on* a Monday, so a Sunday tempo would be invisible and the engine would prescribe back-to-back hard days — the exact thing the rule exists to prevent. Weekly *volume* (`week.km_so_far`, `target_km`) stays calendar-week, because that is a display of the week's total against a weekly target.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `tests/test_prescriber.py`:
@@ -1204,15 +1206,23 @@ import pytest
 
 from src import prescriber
 
-BASE = datetime(2026, 8, 3, 8, 0, 0)   # a Monday
+BASE = datetime(2026, 8, 3, 8, 0, 0)       # a Monday
+SAT_BASE = datetime(2026, 8, 8, 8, 0, 0)   # the Saturday of the same week
 MONDAY = date(2026, 8, 3)
+WEDNESDAY = date(2026, 8, 5)
 SATURDAY = date(2026, 8, 8)
 
 
-def _history(rows):
+def _history(rows, anchor=BASE):
+    """rows: list of (days_ago, km, minutes, hr), counted back from `anchor`.
+
+    Tests that run on a day other than Monday anchor to that day, so a
+    fixture meaning "two runs a week for four weeks" still lands relative
+    to the `today` under test.
+    """
     return pd.DataFrame([
         {"activity_id": 1000 + i, "name": "Run",
-         "start_time": BASE - timedelta(days=days_ago),
+         "start_time": anchor - timedelta(days=days_ago),
          "distance_km": km, "duration_min": minutes,
          "pace_min_km": minutes / km, "avg_hr": hr}
         for i, (days_ago, km, minutes, hr) in enumerate(rows)
@@ -1263,7 +1273,8 @@ class TestRestRule:
 
 class TestLongRule:
     def test_long_on_the_last_available_day(self):
-        p = prescriber.prescribe(_profile(), _history(STEADY), SATURDAY, None)
+        p = prescriber.prescribe(_profile(), _history(STEADY, anchor=SAT_BASE),
+                                 SATURDAY, None)
         assert p["session_type"] == "long"
         assert p["distance_km"] > 6.0
 
@@ -1273,9 +1284,19 @@ class TestLongRule:
         assert p["session_type"] == "easy"
 
     def test_long_capped_at_previous_longest_plus_ten_percent(self):
-        rows = STEADY + [(6, 10.0, 62.0, 150.0)]
-        p = prescriber.prescribe(_profile(), _history(rows), SATURDAY, None)
+        # The 10 km sits 10 days back: inside the 28-day window that sets the
+        # cap, outside the rolling 7 days that would count it as already done.
+        rows = STEADY + [(10, 10.0, 62.0, 150.0)]
+        p = prescriber.prescribe(_profile(), _history(rows, anchor=SAT_BASE),
+                                 SATURDAY, None)
+        assert p["session_type"] == "long"
         assert p["distance_km"] <= 11.0
+
+    def test_no_second_long_within_seven_days(self):
+        rows = STEADY + [(3, 10.0, 62.0, 150.0)]
+        p = prescriber.prescribe(_profile(), _history(rows, anchor=SAT_BASE),
+                                 SATURDAY, None)
+        assert p["session_type"] != "long"
 
 
 class TestTempoRule:
@@ -1289,8 +1310,15 @@ class TestTempoRule:
                                  _history(STEADY), MONDAY, None)
         assert p["session_type"] == "easy"
 
-    def test_no_second_tempo_in_one_week(self):
-        rows = STEADY + [(1, 6.0, 28.0, 172.0)]     # a hard effort two days ago
+    def test_no_second_tempo_within_seven_days(self):
+        rows = STEADY + [(3, 6.0, 28.0, 172.0)]     # a hard effort three days ago
+        p = prescriber.prescribe(_profile(goal_type="break_45"),
+                                 _history(rows), WEDNESDAY, None)
+        assert p["session_type"] == "easy"
+
+    def test_hard_effort_yesterday_blocks_tempo_across_the_week_boundary(self):
+        """Sunday's tempo must suppress Monday's — this is why the window rolls."""
+        rows = STEADY + [(1, 6.0, 28.0, 172.0)]     # Sunday, the day before MONDAY
         p = prescriber.prescribe(_profile(goal_type="break_45"),
                                  _history(rows), MONDAY, None)
         assert p["session_type"] == "easy"
@@ -1357,6 +1385,7 @@ from src import queries
 
 REST_ACWR = 1.4
 MAX_CONSECUTIVE_DAYS = 3
+SPACING_WINDOW_DAYS = 7
 TIME_BASED_GOALS = {"break_45"}
 EASY_FRACTION = 0.7
 LONG_FACTOR = 1.4
@@ -1375,6 +1404,7 @@ def _is_time_based(profile: dict) -> bool:
 
 
 def _week_start(today: date) -> date:
+    """Monday of today's calendar week — used for weekly *volume* only."""
     return today - timedelta(days=today.weekday())
 
 
@@ -1384,28 +1414,32 @@ def _long_day(days_available: list[str]) -> str | None:
     return present[-1] if present else None
 
 
-def _hard_effort_this_week(df: pd.DataFrame, today: date) -> bool:
-    """A run in the faster 40% of the last 28 days, run since Monday."""
+def _hard_effort_recently(df: pd.DataFrame, today: date) -> bool:
+    """A run in the faster 40% of the last 28 days, inside the rolling window.
+
+    Rolling rather than calendar-week: on a Monday a calendar week contains
+    only today, so yesterday's tempo would be invisible and the engine would
+    stack two hard days back to back.
+    """
     window = queries.runs_in_window(df, today, 28).dropna(subset=["pace_min_km"])
     if window.empty:
         return False
     threshold = window["pace_min_km"].quantile(0.40)
-    start = _week_start(today)
-    dates = pd.to_datetime(window["start_time"]).dt.date
-    this_week = window[(dates >= start) & (dates <= today)]
-    return bool((this_week["pace_min_km"] < threshold).any())
+    recent = queries.runs_in_window(window, today, SPACING_WINDOW_DAYS)
+    if recent.empty:
+        return False
+    return bool((recent["pace_min_km"] < threshold).any())
 
 
-def _long_run_this_week(df: pd.DataFrame, today: date) -> bool:
+def _long_run_recently(df: pd.DataFrame, today: date) -> bool:
+    """A run at least 1.25x the 28-day mean, inside the rolling window."""
     mean_dist = queries.mean_run_distance(df, today)
     if mean_dist is None:
         return False
-    start = _week_start(today)
-    dates = pd.to_datetime(df["start_time"]).dt.date
-    this_week = df[(dates >= start) & (dates <= today)]
-    if this_week.empty:
+    recent = queries.runs_in_window(df, today, SPACING_WINDOW_DAYS)
+    if recent.empty:
         return False
-    return bool((this_week["distance_km"] >= mean_dist * 1.25).any())
+    return bool((recent["distance_km"] >= mean_dist * 1.25).any())
 
 
 def prescribe(profile: dict, df: pd.DataFrame, today: date,
@@ -1450,7 +1484,7 @@ def prescribe(profile: dict, df: pd.DataFrame, today: date,
 
     # ── Rule 2: long ──
     if session_type is None and base and today_name == _long_day(days_available) \
-            and not _long_run_this_week(df, today):
+            and not _long_run_recently(df, today):
         session_type = "long"
         distance_km = round((mean_dist or 5.0) * LONG_FACTOR, 1)
         if longest:
@@ -1459,7 +1493,7 @@ def prescribe(profile: dict, df: pd.DataFrame, today: date,
 
     # ── Rule 3: tempo ──
     if session_type is None and _is_time_based(profile) and base \
-            and not _hard_effort_this_week(df, today):
+            and not _hard_effort_recently(df, today):
         session_type = "tempo"
         distance_km = round((mean_dist or 5.0) * 0.9, 1)
         evidence.append({"label": "Because", "value": "No hard effort yet this week"})
@@ -1505,7 +1539,7 @@ def prescribe(profile: dict, df: pd.DataFrame, today: date,
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_prescriber.py -v`
-Expected: PASS (17 tests)
+Expected: PASS (20 tests)
 
 - [ ] **Step 5: Run the whole suite**
 
