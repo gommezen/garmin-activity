@@ -1,7 +1,11 @@
 # Ronin Training Buddy — Design Spec (v1: Post-Run Debrief)
 
+> **SUPERSEDED (2026-07-31)** by [`2026-07-31-shindo-design.md`](2026-07-31-shindo-design.md).
+> Scope moved from this single debrief screen to the nine-beat Shindō storyboard;
+> this design survives as beat 07. Kept for the decision record.
+
 **Date:** 2026-07-31
-**Status:** Approved design, pending implementation plan
+**Status:** Superseded
 **Repo:** garmin-activity (monorepo decision — see Decisions)
 
 ## Summary

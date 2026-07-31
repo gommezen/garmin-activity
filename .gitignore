@@ -58,8 +58,10 @@ MANIFEST
 CLAUDE.md
 todo.md
 .claude/
+.superpowers/
 design_thoughts/
 ui/design choices/
+design/inspiration/
 
 #-----------------------#
 # Auth tokens            #
