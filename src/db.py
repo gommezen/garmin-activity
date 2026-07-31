@@ -39,6 +39,56 @@ CREATE TABLE IF NOT EXISTS laps (
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
 )
 """
+SCHEMA_PROFILE = """
+CREATE TABLE IF NOT EXISTS profile (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    display_name      TEXT,
+    goal_type         TEXT,
+    goal_target       TEXT,
+    goal_date         TEXT,
+    days_available    TEXT,
+    level             TEXT,
+    weekly_volume_lo  REAL,
+    weekly_volume_hi  REAL,
+    pb_json           TEXT,
+    units             TEXT DEFAULT 'km',
+    max_hr            REAL,
+    created_at        TEXT,
+    updated_at        TEXT
+)
+"""
+
+SCHEMA_PRESCRIPTIONS = """
+CREATE TABLE IF NOT EXISTS prescriptions (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    date               TEXT NOT NULL UNIQUE,
+    prescription_json  TEXT NOT NULL,
+    brief_dialogue     TEXT,
+    word               TEXT,
+    model              TEXT NOT NULL,
+    prompt_version     TEXT NOT NULL,
+    created_at         TEXT NOT NULL
+)
+"""
+
+SCHEMA_DEBRIEFS = """
+CREATE TABLE IF NOT EXISTS debriefs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    activity_id     INTEGER,
+    prescription_id INTEGER,
+    verdict_json    TEXT NOT NULL,
+    dialogue        TEXT NOT NULL,
+    instruction     TEXT,
+    feel            TEXT,
+    followup_q      TEXT,
+    followup_a      TEXT,
+    model           TEXT NOT NULL,
+    prompt_version  TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    FOREIGN KEY (activity_id) REFERENCES activities(activity_id),
+    FOREIGN KEY (prescription_id) REFERENCES prescriptions(id)
+)
+"""
 
 
 def _connect():
@@ -46,6 +96,9 @@ def _connect():
     conn = sqlite3.connect(DB_PATH)
     conn.execute(SCHEMA_ACTIVITIES)
     conn.execute(SCHEMA_LAPS)
+    conn.execute(SCHEMA_PROFILE)
+    conn.execute(SCHEMA_PRESCRIPTIONS)
+    conn.execute(SCHEMA_DEBRIEFS)
     conn.commit()
     return conn
 
