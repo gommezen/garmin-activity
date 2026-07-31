@@ -2501,10 +2501,18 @@ export default function RailMedia({ stem, children }) {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   useEffect(() => {
+    setHasVideo(false)          // a new stem must not inherit the last stem's answer
     if (reduced) return
+    let cancelled = false
     fetch(`/art/${stem}.webm`, { method: 'HEAD' })
-      .then((r) => setHasVideo(r.ok))
-      .catch(() => setHasVideo(false))
+      .then((r) => {
+        // Vite's dev server answers unmatched paths with the SPA fallback —
+        // 200 text/html — so r.ok alone is not evidence a video exists.
+        const type = r.headers.get('content-type') || ''
+        if (!cancelled) setHasVideo(r.ok && type.startsWith('video/'))
+      })
+      .catch(() => { if (!cancelled) setHasVideo(false) })
+    return () => { cancelled = true }
   }, [stem, reduced])
 
   return (
