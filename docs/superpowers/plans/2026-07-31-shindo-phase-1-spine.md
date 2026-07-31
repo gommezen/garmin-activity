@@ -1855,6 +1855,31 @@ def client():
 
 
 @pytest.fixture
+def seeded_no_hr():
+    """Same shape as `seeded`, but with no heart-rate data at all.
+
+    This is what the real database looks like: avg_hr is null for every row,
+    so pandas types the column as object full of None rather than float NaN.
+    Guards written for NaN silently fail here.
+    """
+    now = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
+    acts = []
+    for i in range(12):
+        start = now - timedelta(days=i * 2)
+        acts.append({
+            "activityId": 7000 + i,
+            "activityName": "Run",
+            "startTimeLocal": start.strftime("%Y-%m-%d %H:%M:%S"),
+            "distance": 6000.0, "duration": 2220.0, "calories": 400.0,
+            "averageHR": None, "maxHR": None, "averageSpeed": 2.7,
+            "elevationGain": 20.0,
+            "averageRunningCadenceInStepsPerMinute": 170.0,
+        })
+    db.save_activities(acts)
+    return acts
+
+
+@pytest.fixture
 def seeded():
     """Twelve runs over four weeks, the most recent this morning."""
     now = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
@@ -1900,6 +1925,11 @@ class TestToday:
         assert r.status_code == 200
         assert r.json()["prescription"]["session_type"] in (
             "rest", "easy", "long", "tempo")
+
+    def test_works_when_no_activity_has_heart_rate(self, client, seeded_no_hr):
+        """The real database has avg_hr null on every row — object dtype, not NaN."""
+        r = client.get("/api/today")
+        assert r.status_code == 200
 
 
 class TestSession:
@@ -1961,6 +1991,12 @@ class TestDebrief:
         events = _events(client.get("/api/debrief/latest"))
         assert events[0][1]["state"] == "no_new_run"
 
+    def test_judges_a_run_with_no_heart_rate(self, client, seeded_no_hr):
+        events = _events(client.get("/api/debrief/latest"))
+        assert events[0][0] == "verdict"
+        assert events[0][1]["run"]["avg_hr"] is None
+        assert events[-1][0] == "done"
+
 
 class TestFeelAndReply:
     def test_feel_once(self, client, seeded):
@@ -2003,6 +2039,7 @@ import json
 from collections.abc import AsyncIterator
 from datetime import date, timedelta
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
@@ -2039,7 +2076,10 @@ def _latest_run(df) -> dict | None:
         "distance_km": float(row["distance_km"]),
         "duration_min": float(row["duration_min"]),
         "pace_min_km": float(row["pace_min_km"]),
-        "avg_hr": float(row["avg_hr"]) if row["avg_hr"] == row["avg_hr"] else None,
+        # pd.isna, not `x == x`: the self-comparison idiom only catches float
+        # NaN. A column that is entirely null comes back as object dtype full
+        # of Python None, where `None == None` is True and float(None) raises.
+        "avg_hr": None if pd.isna(row["avg_hr"]) else float(row["avg_hr"]),
     }
 
 
@@ -2244,7 +2284,7 @@ async def reply(debrief_id: int, body: ReplyIn):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_api.py -v`
-Expected: PASS (14 tests)
+Expected: PASS (16 tests)
 
 - [ ] **Step 5: Run the whole suite**
 
