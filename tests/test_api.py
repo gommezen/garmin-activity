@@ -179,6 +179,12 @@ class TestDebrief:
         assert events[0][1]["run"]["avg_hr"] is None
         assert events[-1][0] == "done"
 
+    def test_replay_carries_one_shot_state(self, client, seeded):
+        did = _events(client.get("/api/debrief/latest"))[-1][1]["debrief_id"]
+        client.post(f"/api/debrief/{did}/feel", json={"feel": "good"})
+        done = _events(client.get("/api/debrief/latest"))[-1][1]
+        assert done["feel"] == "good"
+
 
 class TestFeelAndReply:
     def test_feel_once(self, client, seeded):

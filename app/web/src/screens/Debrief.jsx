@@ -34,29 +34,42 @@ export default function Debrief() {
     streamSSE('/api/debrief/latest', {}, (name, payload) => {
       if (name === 'verdict') setVerdict(payload)
       else if (name === 'token') setText((t) => t + payload.t)
-      else if (name === 'done') { setDebriefId(payload.debrief_id); setStreaming(false) }
+      else if (name === 'done') {
+        setDebriefId(payload.debrief_id)
+        if (payload.feel) setFeel(payload.feel)
+        if (payload.followup_q) {
+          setQuestion(payload.followup_q)
+          setAnswer(payload.followup_a || '')
+          setAsked(true)
+        }
+        setStreaming(false)
+      }
     }).catch(() => setStreaming(false))
   }, [])
 
   async function recordFeel(value) {
-    setFeel(value)
-    await fetch(`/api/debrief/${debriefId}/feel`, {
+    const res = await fetch(`/api/debrief/${debriefId}/feel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feel: value }),
     })
+    if (res.ok) setFeel(value)
   }
 
   async function ask() {
     if (!question.trim() || asked) return
-    setAsked(true)
-    await streamSSE(`/api/debrief/${debriefId}/reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
-    }, (name, payload) => {
-      if (name === 'token') setAnswer((a) => a + payload.t)
-    })
+    try {
+      await streamSSE(`/api/debrief/${debriefId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      }, (name, payload) => {
+        if (name === 'token') setAnswer((a) => a + payload.t)
+      })
+      setAsked(true)
+    } catch {
+      // rejected (e.g. follow-up already used) — leave the control visible
+    }
   }
 
   const rail = (
@@ -92,7 +105,7 @@ export default function Debrief() {
     <Dojo rail={rail}>
       <div className="flex items-baseline gap-3">
         <span className="font-sans text-[10px] font-semibold uppercase
-                         tracking-[.16em] text-stone">Session complete · {r.date}</span>
+                         tracking-[.16em] text-stone">Session complete · <span className="font-mono">{r.date}</span></span>
         <span className="ml-auto">
           <span className="font-mono text-[30px] text-ink">{r.km}</span>
           <span className="ml-1 font-sans text-[10px] font-semibold uppercase

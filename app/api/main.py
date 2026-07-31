@@ -174,7 +174,12 @@ async def debrief_latest():
         async def replay() -> AsyncIterator[str]:
             yield _sse("verdict", existing["verdict"])
             yield _sse("token", {"t": existing["dialogue"]})
-            yield _sse("done", {"debrief_id": existing["id"]})
+            yield _sse("done", {
+                "debrief_id": existing["id"],
+                "feel": existing["feel"],
+                "followup_q": existing["followup_q"],
+                "followup_a": existing["followup_a"],
+            })
         return StreamingResponse(replay(), media_type="text/event-stream")
 
     run_date = run["start_time"].date().isoformat()
