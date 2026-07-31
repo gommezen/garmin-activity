@@ -40,6 +40,13 @@ class TestWindows:
     def test_empty_window_is_zero(self):
         assert queries.km_in_window(_df([]), TODAY, 7) == 0.0
 
+    def test_km_since_includes_run_on_start_date(self):
+        # km_since's lower bound is inclusive, unlike km_in_window's — a
+        # calendar week must count the Monday it starts on.
+        start = TODAY - timedelta(days=7)
+        df = _df([(7, 5, 30, 145)])  # exactly on `start`
+        assert queries.km_since(df, start, TODAY) == pytest.approx(5.0)
+
 
 class TestAcwr:
     def test_none_when_history_too_short(self):

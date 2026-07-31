@@ -49,6 +49,8 @@ class TestRestRule:
                                  _history(STEADY), MONDAY, None)
         assert p["session_type"] == "rest"
         assert p["distance_km"] is None
+        assert p["pace_band_s"] is None
+        assert p["hr_cap"] is None
 
     def test_rest_on_load_spike(self):
         rows = [(d, 3.0, 18.0, 145.0) for d in range(8, 29, 2)]
@@ -85,13 +87,14 @@ class TestLongRule:
         assert p["session_type"] == "easy"
 
     def test_long_capped_at_previous_longest_plus_ten_percent(self):
-        # The 10 km sits 10 days back: inside the 28-day window that sets the
-        # cap, outside the rolling 7 days that would count it as already done.
-        rows = STEADY + [(10, 10.0, 62.0, 150.0)]
+        # 7 km ten days back: inside the 28-day window that sets the cap,
+        # outside the rolling 7 days that would count it as already done.
+        # Uncapped the long run would be 8.6 km; the cap pulls it to 7.7.
+        rows = STEADY + [(10, 7.0, 43.0, 150.0)]
         p = prescriber.prescribe(_profile(), _history(rows, anchor=SAT_BASE),
                                  SATURDAY, None)
         assert p["session_type"] == "long"
-        assert p["distance_km"] <= 11.0
+        assert p["distance_km"] == 7.7
 
     def test_no_second_long_within_seven_days(self):
         rows = STEADY + [(3, 10.0, 62.0, 150.0)]
@@ -144,6 +147,10 @@ class TestEasyDefaults:
     def test_hr_cap_falls_back_to_max_hr_fraction(self):
         p = prescriber.prescribe(_profile(), _history([]), MONDAY, None)
         assert p["hr_cap"] == 148
+
+    def test_hr_cap_is_none_without_any_hr_signal(self):
+        p = prescriber.prescribe(_profile(max_hr=None), _history([]), MONDAY, None)
+        assert p["hr_cap"] is None
 
 
 class TestEnvelope:

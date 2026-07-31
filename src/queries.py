@@ -27,6 +27,18 @@ def km_in_window(df: pd.DataFrame, today: date, days: int) -> float:
     return float(window["distance_km"].sum()) if not window.empty else 0.0
 
 
+def km_since(df: pd.DataFrame, start: date, today: date) -> float:
+    """Kilometres run in [start, today] — inclusive of both ends.
+
+    Distinct from km_in_window, whose lower bound is exclusive: a calendar
+    week must count the Monday it starts on.
+    """
+    if df.empty:
+        return 0.0
+    window = df[(_dates(df) >= start) & (_dates(df) <= today)]
+    return float(window["distance_km"].sum()) if not window.empty else 0.0
+
+
 def history_days(df: pd.DataFrame, today: date) -> int:
     if df.empty:
         return 0

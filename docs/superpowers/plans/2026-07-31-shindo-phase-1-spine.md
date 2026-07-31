@@ -461,7 +461,8 @@ git commit -m "feat(shindo): add profile/prescription/debrief schema and store"
 - Consumes: `db.load_dataframe()`, `db.load_laps_dataframe()`
 - Produces:
   - `queries.runs_in_window(df, today: date, days: int) -> DataFrame`
-  - `queries.km_in_window(df, today: date, days: int) -> float`
+  - `queries.km_in_window(df, today: date, days: int) -> float` — lower bound **exclusive**
+  - `queries.km_since(df, start: date, today: date) -> float` — lower bound **inclusive**; a calendar week must count the Monday it starts on
   - `queries.acwr(df, today: date) -> float | None` — None when fewer than 14 days of history
   - `queries.mean_run_distance(df, today: date, days: int = 28) -> float | None`
   - `queries.median_easy_pace_s(df, today: date, days: int = 28) -> float | None` — seconds per km
@@ -1284,13 +1285,14 @@ class TestLongRule:
         assert p["session_type"] == "easy"
 
     def test_long_capped_at_previous_longest_plus_ten_percent(self):
-        # The 10 km sits 10 days back: inside the 28-day window that sets the
-        # cap, outside the rolling 7 days that would count it as already done.
-        rows = STEADY + [(10, 10.0, 62.0, 150.0)]
+        # 7 km ten days back: inside the 28-day window that sets the cap,
+        # outside the rolling 7 days that would count it as already done.
+        # Uncapped the long run would be 8.6 km; the cap pulls it to 7.7.
+        rows = STEADY + [(10, 7.0, 43.0, 150.0)]
         p = prescriber.prescribe(_profile(), _history(rows, anchor=SAT_BASE),
                                  SATURDAY, None)
         assert p["session_type"] == "long"
-        assert p["distance_km"] <= 11.0
+        assert p["distance_km"] == 7.7
 
     def test_no_second_long_within_seven_days(self):
         rows = STEADY + [(3, 10.0, 62.0, 150.0)]
@@ -1457,10 +1459,7 @@ def prescribe(profile: dict, df: pd.DataFrame, today: date,
     longest = queries.longest_run_km(df, today, days=28)
 
     week_start = _week_start(today)
-    km_so_far = float(df[
-        (pd.to_datetime(df["start_time"]).dt.date >= week_start)
-        & (pd.to_datetime(df["start_time"]).dt.date <= today)
-    ]["distance_km"].sum()) if not df.empty else 0.0
+    km_so_far = queries.km_since(df, week_start, today)
     prev_week_km = queries.km_in_window(df, week_start - timedelta(days=1), 7)
     target_km = round(prev_week_km * WEEK_GROWTH, 1)
 

@@ -85,10 +85,7 @@ def prescribe(profile: dict, df: pd.DataFrame, today: date,
     longest = queries.longest_run_km(df, today, days=28)
 
     week_start = _week_start(today)
-    km_so_far = float(df[
-        (pd.to_datetime(df["start_time"]).dt.date >= week_start)
-        & (pd.to_datetime(df["start_time"]).dt.date <= today)
-    ]["distance_km"].sum()) if not df.empty else 0.0
+    km_so_far = queries.km_since(df, week_start, today)
     prev_week_km = queries.km_in_window(df, week_start - timedelta(days=1), 7)
     target_km = round(prev_week_km * WEEK_GROWTH, 1)
 
