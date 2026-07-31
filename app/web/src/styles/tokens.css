@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink:#0C0B0A; --ink-2:#141210;
+  --washi:#F2EDE4; --washi-2:#E8DFCD; --washi-3:#D6CEC0;
+  --stone:#8E8779; --stone-2:#6F6759; --stone-3:#A79E90;
+  --gold:#C9A227; --crimson:#B8382C; --jade:#5B7C6E;
+  --dur:200ms; --ease:cubic-bezier(0.2,0,0,1);
+}
+
+body { background: var(--ink); color: var(--washi); }
+
+.washi-grain { position: relative; }
+.washi-grain::before {
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:.5;
+  background:
+    radial-gradient(circle at 20% 16%, rgba(142,135,121,.16), transparent 46%),
+    radial-gradient(circle at 80% 76%, rgba(142,135,121,.13), transparent 42%);
+}
+
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.07); } }
+.kenburns { animation: kenburns 24s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .kenburns { animation: none; } }
