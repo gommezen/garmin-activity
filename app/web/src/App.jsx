@@ -3,6 +3,7 @@ import Dojo from './components/Dojo.jsx'
 import RailMedia from './components/RailMedia.jsx'
 import Home from './screens/Home.jsx'
 import Session from './screens/Session.jsx'
+import Brief from './screens/Brief.jsx'
 
 function Stub({ name, stem }) {
   return (
@@ -21,7 +22,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/session" element={<Session />} />
-      <Route path="/brief" element={<Stub name="Brief" stem="brief-sensei" />} />
+      <Route path="/brief" element={<Brief />} />
       <Route path="/debrief" element={<Stub name="Debrief" stem="debrief-runner" />} />
     </Routes>
   )
