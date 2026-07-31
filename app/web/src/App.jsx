@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Dojo from './components/Dojo.jsx'
 import RailMedia from './components/RailMedia.jsx'
 import Home from './screens/Home.jsx'
+import Session from './screens/Session.jsx'
 
 function Stub({ name, stem }) {
   return (
@@ -19,7 +20,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/session" element={<Stub name="Session" stem="session-route" />} />
+      <Route path="/session" element={<Session />} />
       <Route path="/brief" element={<Stub name="Brief" stem="brief-sensei" />} />
       <Route path="/debrief" element={<Stub name="Debrief" stem="debrief-runner" />} />
     </Routes>
