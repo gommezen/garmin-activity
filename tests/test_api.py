@@ -186,6 +186,72 @@ class TestDebrief:
         assert done["feel"] == "good"
 
 
+class TestDegradation:
+    """Kurosawa failing mid-stream must never poison the persisted record.
+
+    The fallback line is appended after whatever tokens already arrived, so
+    `dialogue != FALLBACK_LINE` is not a reliable degradation signal — the
+    engines must be told out-of-band via `state["degraded"]`.
+    """
+
+    def test_pre_token_failure_falls_back_without_persisting(self, client, seeded, monkeypatch):
+        async def explode(*a, **k):
+            raise RuntimeError("Claude unavailable")
+            yield  # pragma: no cover
+
+        from app.api import main as api_main
+        monkeypatch.setattr(api_main, "stream_voice", explode)
+
+        events = _events(client.get("/api/brief"))
+        text = "".join(p["t"] for n, p in events if n == "token")
+        assert text == FALLBACK_LINE
+        assert events[-1][0] == "done"
+        assert events[-1][1]["prescription_id"] is None
+
+    def test_mid_token_failure_falls_back_without_persisting_corrupted_text(
+        self, client, seeded, monkeypatch
+    ):
+        async def explode(*a, **k):
+            yield "Hold back today. "
+            raise RuntimeError("Claude dropped mid-stream")
+
+        from app.api import main as api_main
+        monkeypatch.setattr(api_main, "stream_voice", explode)
+
+        events = _events(client.get("/api/brief"))
+        text = "".join(p["t"] for n, p in events if n == "token")
+        # The corrupted concatenation that used to slip past `!= FALLBACK_LINE`.
+        assert text == "Hold back today. " + FALLBACK_LINE
+        assert events[-1][0] == "done"
+        assert events[-1][1]["prescription_id"] is None
+
+    def test_next_request_retries_rather_than_replaying_a_persisted_fallback(
+        self, client, seeded, monkeypatch
+    ):
+        from app.api import main as api_main
+
+        async def explode(*a, **k):
+            raise RuntimeError("Claude unavailable")
+            yield  # pragma: no cover
+
+        monkeypatch.setattr(api_main, "stream_voice", explode)
+        first = _events(client.get("/api/brief"))
+        assert first[-1][1]["prescription_id"] is None
+
+        calls = []
+
+        async def fake_stream(register, payload, memory, question=None):
+            calls.append(1)
+            yield "Real words this time. "
+
+        monkeypatch.setattr(api_main, "stream_voice", fake_stream)
+        second = _events(client.get("/api/brief"))
+        assert calls, "Claude was not invoked again — a fallback was replayed instead"
+        second_text = "".join(p["t"] for n, p in second if n == "token")
+        assert second_text == "Real words this time. "
+        assert second[-1][1]["prescription_id"] is not None
+
+
 class TestFeelAndReply:
     def test_feel_once(self, client, seeded):
         did = _events(client.get("/api/debrief/latest"))[-1][1]["debrief_id"]

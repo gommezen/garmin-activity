@@ -114,3 +114,14 @@ class TestVsPrescription:
         v = verdict.judge(_run(), _history(STEADY), NO_LAPS, TODAY, p, [])
         assert v["vs_prescription"]["pace"] == "above_band"
         assert v["vs_prescription"]["distance_delta_km"] == pytest.approx(0.0)
+
+    def test_rest_day_prescription_does_not_raise(self):
+        # A prescribed rest day carries explicit Nones (not missing keys) —
+        # ran anyway, and the judge should degrade gracefully rather than
+        # raising on unpacking `pace_band_s`.
+        p = {"session_type": "rest", "distance_km": None,
+             "pace_band_s": None, "hr_cap": None}
+        v = verdict.judge(_run(), _history(STEADY), NO_LAPS, TODAY, p, [])
+        assert v["vs_prescription"]["pace"] is None
+        assert v["vs_prescription"]["distance_delta_km"] == pytest.approx(
+            v["run"]["km"])

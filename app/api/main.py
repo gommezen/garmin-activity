@@ -68,12 +68,13 @@ def _current_prescription(df, today: date) -> dict:
     return prescriber.prescribe(store.get_profile(), df, today, _last_feel(df))
 
 
-async def _voice_or_fallback(register, payload, memory, question=None) -> AsyncIterator[str]:
-    """Stream Kurosawa, or fall back to a fixed line if Claude is unavailable."""
+async def _voice_or_fallback(register, payload, memory, state, question=None) -> AsyncIterator[str]:
+    """Stream Kurosawa. On failure, mark state and yield the fallback line."""
     try:
         async for chunk in stream_voice(register, payload, memory, question):
             yield chunk
     except Exception:
+        state["degraded"] = True
         yield FALLBACK_LINE
 
 
@@ -142,12 +143,13 @@ async def brief():
     async def generate() -> AsyncIterator[str]:
         yield _sse("prescription", prescription)
         collected = []
-        async for chunk in _voice_or_fallback("brief", prescription, memory):
+        state = {"degraded": False}
+        async for chunk in _voice_or_fallback("brief", prescription, memory, state):
             collected.append(chunk)
             yield _sse("token", {"t": chunk})
         dialogue = "".join(collected)
         pid = None
-        if dialogue and dialogue != FALLBACK_LINE:
+        if dialogue and not state["degraded"]:
             word = extract_instruction(dialogue) or ""
             pid = store.save_prescription(
                 now.isoformat(), prescription, dialogue, word, MODEL, PROMPT_VERSION)
@@ -192,12 +194,13 @@ async def debrief_latest():
     async def generate() -> AsyncIterator[str]:
         yield _sse("verdict", v)
         collected = []
-        async for chunk in _voice_or_fallback("debrief", v, memory):
+        state = {"degraded": False}
+        async for chunk in _voice_or_fallback("debrief", v, memory, state):
             collected.append(chunk)
             yield _sse("token", {"t": chunk})
         dialogue = "".join(collected)
         did = None
-        if dialogue and dialogue != FALLBACK_LINE:
+        if dialogue and not state["degraded"]:
             did = store.save_debrief(
                 run["activity_id"], stored_p["id"] if stored_p else None, v,
                 dialogue, extract_instruction(dialogue), MODEL, PROMPT_VERSION)
@@ -242,13 +245,14 @@ async def reply(debrief_id: int, body: ReplyIn):
 
     async def generate() -> AsyncIterator[str]:
         collected = []
+        state = {"degraded": False}
         async for chunk in _voice_or_fallback(
-            "reply", existing["verdict"], memory, body.question
+            "reply", existing["verdict"], memory, state, body.question
         ):
             collected.append(chunk)
             yield _sse("token", {"t": chunk})
         answer = "".join(collected)
-        if answer and answer != FALLBACK_LINE:
+        if answer and not state["degraded"]:
             store.set_followup(debrief_id, body.question, answer)
         yield _sse("done", {"debrief_id": debrief_id})
 

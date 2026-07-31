@@ -41,9 +41,11 @@ export default function Home() {
       <RailMedia stem="home-sensei">
         <div className="font-sans text-[10px] font-semibold uppercase
                         tracking-[.16em] text-washi/60">Today's word</div>
-        <p className="mt-2 font-serif italic leading-relaxed text-washi">
-          {data.word || 'Slow enough to speak. Anything faster is borrowing from tomorrow.'}
-        </p>
+        {data.word && (
+          <p className="mt-2 font-serif italic leading-relaxed text-washi">
+            {data.word}
+          </p>
+        )}
       </RailMedia>
     }>
       <div className="flex items-baseline gap-3">

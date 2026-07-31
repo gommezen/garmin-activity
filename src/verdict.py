@@ -83,7 +83,7 @@ def judge(run: dict, df: pd.DataFrame, laps_df: pd.DataFrame, today: date,
         # "Above band" means above the prescribed *effort* — i.e. ran faster than
         # told, which is fewer seconds per km. This matches the storyboard's
         # "3 of 3 runs above band", where the sensei is telling you to hold back.
-        lo, hi = prescription.get("pace_band_s", [None, None])
+        lo, hi = prescription.get("pace_band_s") or [None, None]
         if lo is None:
             band = None
         elif pace_s < lo:
@@ -95,7 +95,7 @@ def judge(run: dict, df: pd.DataFrame, laps_df: pd.DataFrame, today: date,
         vs_prescription = {
             "pace": band,
             "distance_delta_km": round(
-                run["distance_km"] - prescription.get("distance_km", 0), 2),
+                run["distance_km"] - (prescription.get("distance_km") or 0), 2),
         }
 
     return {
