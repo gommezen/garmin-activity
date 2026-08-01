@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 from datetime import date, timedelta
 
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
@@ -16,6 +17,8 @@ from pydantic import BaseModel, field_validator
 from src import db, prescriber, rank, store, verdict
 from app.api.persona import MODEL, PROMPT_VERSION, extract_instruction
 from app.api.sensei import stream_voice
+
+load_dotenv()
 
 app = FastAPI(title="Shindo")
 
