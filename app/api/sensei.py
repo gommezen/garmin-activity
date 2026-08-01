@@ -1,7 +1,11 @@
-"""The only module that talks to Claude.
+"""The only module that talks to the language model.
 
 Everything Kurosawa says is a rendering of JSON the engines already produced.
 `stream_voice` is the seam the API tests replace.
+
+Two backends, chosen by env: Anthropic by default; any OpenAI-compatible
+endpoint (Ollama, Moonshot/Kimi, NIM) when VOICE_BASE_URL is set, with
+VOICE_MODEL naming the model and VOICE_API_KEY the key ("ollama" locally).
 """
 
 import json
@@ -9,18 +13,26 @@ import os
 from collections.abc import AsyncIterator
 
 from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 
 from app.api import persona
 
-_client: AsyncAnthropic | None = None
+_client: AsyncAnthropic | AsyncOpenAI | None = None
 
 
-def _get_client() -> AsyncAnthropic:
+def _get_client() -> AsyncAnthropic | AsyncOpenAI:
     global _client
     if _client is None:
-        if not os.getenv("ANTHROPIC_API_KEY"):
-            raise RuntimeError("ANTHROPIC_API_KEY is not set")
-        _client = AsyncAnthropic()
+        base_url = os.getenv("VOICE_BASE_URL")
+        if base_url:
+            if not os.getenv("VOICE_MODEL"):
+                raise RuntimeError("VOICE_MODEL is not set (required with VOICE_BASE_URL)")
+            _client = AsyncOpenAI(base_url=base_url,
+                                  api_key=os.getenv("VOICE_API_KEY", "ollama"))
+        else:
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                raise RuntimeError("ANTHROPIC_API_KEY is not set")
+            _client = AsyncAnthropic()
     return _client
 
 
@@ -39,6 +51,23 @@ async def stream_voice(register: str, payload: dict, memory: list[str],
                        question: str | None = None) -> AsyncIterator[str]:
     """Yield Kurosawa's words as they arrive."""
     client = _get_client()
+    message = build_user_message(register, payload, memory, question)
+    if isinstance(client, AsyncOpenAI):
+        # Thinking models (gemma4, deepseek-r1, qwen3) spend tokens on a
+        # reasoning field before any content; 1000 starves them into silence.
+        stream = await client.chat.completions.create(
+            model=os.environ["VOICE_MODEL"],
+            max_tokens=4000,
+            stream=True,
+            messages=[
+                {"role": "system", "content": persona.SYSTEM_PROMPT},
+                {"role": "user", "content": message},
+            ],
+        )
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+        return
     async with client.messages.stream(
         model=persona.MODEL,
         max_tokens=1000,
@@ -50,7 +79,7 @@ async def stream_voice(register: str, payload: dict, memory: list[str],
         }],
         messages=[{
             "role": "user",
-            "content": build_user_message(register, payload, memory, question),
+            "content": message,
         }],
     ) as stream:
         async for text in stream.text_stream:
