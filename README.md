@@ -98,8 +98,8 @@ npm --prefix app/web install
 ./run-shindo.sh
 ```
 
-API on :8000, web on :5173. Every screen works without Claude — his voice
-degrades to a fixed line while the numbers keep rendering. If port 8000 is
+API on :8010, web on :5173. Every screen works without Claude — his voice
+degrades to a fixed line while the numbers keep rendering. If port 8010 is
 already taken by another project, edit the `--port` flag in `run-shindo.sh`
 and the matching proxy target in `app/web/vite.config.js`.
 
