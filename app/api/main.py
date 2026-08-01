@@ -15,8 +15,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
 
 from src import db, prescriber, rank, store, verdict
-from app.api.persona import MODEL, PROMPT_VERSION, extract_instruction
-from app.api.sensei import stream_voice
+from app.api.persona import PROMPT_VERSION, extract_instruction
+from app.api.sensei import active_model, stream_voice
 
 load_dotenv()
 
@@ -155,7 +155,8 @@ async def brief():
         if dialogue and not state["degraded"]:
             word = extract_instruction(dialogue) or ""
             pid = store.save_prescription(
-                now.isoformat(), prescription, dialogue, word, MODEL, PROMPT_VERSION)
+                now.isoformat(), prescription, dialogue, word,
+                active_model(), PROMPT_VERSION)
         yield _sse("done", {"prescription_id": pid})
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -206,7 +207,8 @@ async def debrief_latest():
         if dialogue and not state["degraded"]:
             did = store.save_debrief(
                 run["activity_id"], stored_p["id"] if stored_p else None, v,
-                dialogue, extract_instruction(dialogue), MODEL, PROMPT_VERSION)
+                dialogue, extract_instruction(dialogue),
+                active_model(), PROMPT_VERSION)
         yield _sse("done", {"debrief_id": did})
 
     return StreamingResponse(generate(), media_type="text/event-stream")

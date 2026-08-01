@@ -273,3 +273,35 @@ class TestFeelAndReply:
 
     def test_reply_unknown_debrief_is_404(self, client):
         assert client.post("/api/debrief/999/reply", json={"question": "?"}).status_code == 404
+
+
+class TestModelProvenance:
+    """The model column must name the model that actually spoke — not the
+    Anthropic constant — now that VOICE_BASE_URL can route dialogue through
+    any OpenAI-compatible backend. Insert-only tables make a wrong value
+    permanent."""
+
+    def _stored_model(self, table: str) -> str:
+        import sqlite3
+        conn = sqlite3.connect(db.DB_PATH)
+        model = conn.execute(f"SELECT model FROM {table}").fetchone()[0]
+        conn.close()
+        return model
+
+    def test_brief_records_voice_backend_model(self, client, seeded, monkeypatch):
+        monkeypatch.setenv("VOICE_BASE_URL", "http://localhost:11434/v1")
+        monkeypatch.setenv("VOICE_MODEL", "ornith:35b")
+        client.get("/api/brief")
+        assert self._stored_model("prescriptions") == "ornith:35b"
+
+    def test_debrief_records_voice_backend_model(self, client, seeded, monkeypatch):
+        monkeypatch.setenv("VOICE_BASE_URL", "http://localhost:11434/v1")
+        monkeypatch.setenv("VOICE_MODEL", "ornith:35b")
+        client.get("/api/debrief/latest")
+        assert self._stored_model("debriefs") == "ornith:35b"
+
+    def test_default_path_still_records_anthropic_model(self, client, seeded, monkeypatch):
+        monkeypatch.delenv("VOICE_BASE_URL", raising=False)
+        client.get("/api/brief")
+        from app.api.persona import MODEL
+        assert self._stored_model("prescriptions") == MODEL

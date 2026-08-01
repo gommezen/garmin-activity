@@ -36,6 +36,17 @@ def _get_client() -> AsyncAnthropic | AsyncOpenAI:
     return _client
 
 
+def active_model() -> str:
+    """The model identifier dialogue is actually generated with.
+
+    Persisted as provenance in the insert-only tables — must follow the
+    backend selection in `_get_client`, never a constant.
+    """
+    if os.getenv("VOICE_BASE_URL"):
+        return os.environ["VOICE_MODEL"]
+    return persona.MODEL
+
+
 def build_user_message(register: str, payload: dict, memory: list[str],
                        question: str | None) -> str:
     parts = [persona.register_instruction(register), "", json.dumps(payload, indent=2)]
@@ -53,12 +64,18 @@ async def stream_voice(register: str, payload: dict, memory: list[str],
     client = _get_client()
     message = build_user_message(register, payload, memory, question)
     if isinstance(client, AsyncOpenAI):
-        # Thinking models (gemma4, deepseek-r1, qwen3) spend tokens on a
-        # reasoning field before any content; 1000 starves them into silence.
+        # Thinking models (gemma4, deepseek-r1, qwen3, ornith) spend tokens on
+        # a reasoning field before any content; 1000 starves them into silence.
+        # VOICE_REASONING_EFFORT=none turns thinking off on Ollama — only sent
+        # when set, so backends that reject the field stay usable.
+        extra = {}
+        if effort := os.getenv("VOICE_REASONING_EFFORT"):
+            extra["reasoning_effort"] = effort
         stream = await client.chat.completions.create(
             model=os.environ["VOICE_MODEL"],
             max_tokens=4000,
             stream=True,
+            **extra,
             messages=[
                 {"role": "system", "content": persona.SYSTEM_PROMPT},
                 {"role": "user", "content": message},

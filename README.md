@@ -103,14 +103,17 @@ backend instead (Ollama, Moonshot/Kimi, NIM), set in `.env`:
 
 ```bash
 VOICE_BASE_URL=http://localhost:11434/v1   # Ollama
-VOICE_MODEL=granite4.1:8b-q4_K_M           # any pulled model
+VOICE_MODEL=ornith:35b                     # any pulled model
+VOICE_REASONING_EFFORT=none                # for thinking models on Ollama
 # VOICE_API_KEY=...                        # only for hosted backends
 ```
 
-Unset `VOICE_BASE_URL` to go back to Claude. Prefer non-thinking models
-for the voice: thinking models (gemma4, deepseek-r1, qwen3) reason for
-minutes before the first spoken word. Their reasoning never leaks into
-the dialogue — Ollama keeps it in a separate field — it just delays it.
+Unset `VOICE_BASE_URL` to go back to Claude. Thinking models (gemma4,
+deepseek-r1, qwen3, ornith) reason for minutes before the first spoken
+word unless `VOICE_REASONING_EFFORT=none` — their reasoning never leaks
+into the dialogue (Ollama keeps it in a separate field), it just delays
+it. Non-thinking models (granite4.1) need no tuning; drop the line for
+hosted backends that reject the field.
 
 API on :8010, web on :5173. Every screen works without Claude — his voice
 degrades to a fixed line while the numbers keep rendering. If port 8010 is
